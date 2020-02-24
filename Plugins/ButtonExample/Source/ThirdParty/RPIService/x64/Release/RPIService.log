@@ -1,0 +1,4 @@
+﻿  stdafx.cpp
+  binary_stream.cc
+  rpi_service.cc
+  RPIService.vcxproj -> C:\Program Files\GRAPHISOFT\API Development Kit 21.3005\Examples\GDServer\x64\Release\RPIService.lib
