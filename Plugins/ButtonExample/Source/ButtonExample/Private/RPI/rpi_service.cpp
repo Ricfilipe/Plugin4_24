@@ -11,6 +11,7 @@ namespace rpi_service {
 
 RpiService::RpiService() {
 	ADD_FUNCTION(Primitive::Sphere);
+    ADD_FUNCTION(Primitive::Box);
 	UE_LOG(LogThread, Log, TEXT("Created Thread"));
 }
 
@@ -23,6 +24,7 @@ void rpi_service::RpiService::Run(unsigned short port) {
     boost::asio::io_service io_service;
     boost::asio::ip::tcp::acceptor acceptor(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port));
     binary_stream::BinaryStream socket_stream(io_service, binary_stream::Endianess::kLittle);
+    UE_LOG(LogThread, Warning, TEXT("Waiting for connection"));
     acceptor.accept(socket_stream.GetSocket());
 	UE_LOG(LogThread, Warning, TEXT("Connected to Something"));
     boost::system::error_code error;

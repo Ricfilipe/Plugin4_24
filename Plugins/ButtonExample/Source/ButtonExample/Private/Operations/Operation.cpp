@@ -55,7 +55,7 @@ AActor* Operation::CreateSphere() {
 	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
 	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
 	UTetrahedronBuilder* builder = (UTetrahedronBuilder*)NewBrush->BrushBuilder;
-	builder->Radius = radius*2;
+	builder->Radius = radius*200;
 	builder->SphereExtrapolation = 5;
 	builder->Build(World, NewBrush);
 	GEditor->RebuildAlteredBSP();

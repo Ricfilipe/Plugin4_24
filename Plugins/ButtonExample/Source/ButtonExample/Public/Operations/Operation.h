@@ -9,6 +9,8 @@
  * 
  */
 
+
+#define rescale 200
 enum TypeOP
 {
 	Sphere,Cube,Cylinder,Cone

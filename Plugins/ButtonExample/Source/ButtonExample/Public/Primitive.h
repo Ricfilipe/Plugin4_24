@@ -88,7 +88,7 @@ namespace Primitive {
 
 	int Cone(float px, float py, float pz, float rx, float ry, float rz, float height, float radius);
 
-	int Cube(float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz);
+	int  Box(float px, float py, float pz, float rx, float ry, float rz, float tx, float ty, float tz, float sx, float sy, float sz);
 
 	int CopyMesh(char* label, int actor, float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz, const char* mat);
 }

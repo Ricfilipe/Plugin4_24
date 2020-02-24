@@ -13,7 +13,7 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/Selection.h"
-
+#include "CustomBrushes/KhepriCylinder.h"
 
 #define LOCTEXT_NAMESPACE "BrushBuilder"
 
@@ -93,7 +93,76 @@ void UVertixBuilder::BuildCustom(int32 Direction, TArray<FVector> vertices, floa
 }
 
 
+UKhepriCylinder::UKhepriCylinder(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FName NAME_Cylinder;
+		FConstructorStatics()
+			: NAME_Cylinder(TEXT("Cylinder"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
 
+	Height = 200.0f;
+	Radius = 200.0f;
+	Sides = 8;
+	GroupName = ConstructorStatics.NAME_Cylinder;
+	BitmapFilename = TEXT("Btn_Cylinder");
+	ToolTip = TEXT("BrushBuilderName_Cylinder");
+}
+
+void UKhepriCylinder::BuildCylinder(int32 Direction, int32 InSides, float InZ, float Radius)
+{
+	int32 n = GetVertexCount();
+	int32 Ofs = 0;
+
+
+	// Vertices.
+	for (int32 i = 0; i < InSides; i++)
+		for (int32 j = 0; j < 2; j += 1)
+			Vertex3f(Radius * FMath::Sin((2 * i + Ofs) * PI / InSides), Radius * FMath::Cos((2 * i + Ofs) * PI / InSides), j * InZ);
+
+	// Polys.
+	for (int32 i = 0; i < InSides; i++)
+		Poly4i(Direction, n + i * 2, n + i * 2 + 1, n + ((i * 2 + 3) % (2 * InSides)), n + ((i * 2 + 2) % (2 * InSides)), FName(TEXT("Wall")));
+}
+
+void UKhepriCylinder::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (PropertyChangedEvent.Property)
+	{
+		static FName Name_OuterRadius(GET_MEMBER_NAME_CHECKED(UKhepriCylinder, Radius));
+
+
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+bool UKhepriCylinder::Build(UWorld* InWorld, ABrush* InBrush)
+{
+	if (Sides < 3)
+		return BadParameters(LOCTEXT("CylinderInvalidSides", "Not enough cylinder sides."));
+	if (Height <= 0 || Radius <= 0)
+		return BadParameters(LOCTEXT("CylinderInvalidRadius", "Invalid cylinder radius"));
+
+
+	BeginBrush(false, GroupName);
+	BuildCylinder(+1, Sides, Height, Radius);
+
+	for (int32 j = -1; j < 2; j += 2)
+	{
+		PolyBegin(j, FName(TEXT("Cap")));
+		for (int32 i = 0; i < Sides; i++)
+			Polyi(i * 2 + (1 - j) / 2);
+		PolyEnd();
+	}
+
+	return EndBrush(InWorld, InBrush);
+} 
 
 
 //Solving virtual methods
