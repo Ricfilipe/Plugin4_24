@@ -19,6 +19,8 @@
 #include "Engine/Polys.h"
 #include "Builders/TetrahedronBuilder.h"
 #include "Operations/BoxCreation.h"
+#include "Operations/RightCuboidCreation.h"
+
 
 int cube = 0, cylinder = 0, sphere = 0, object = 0;
 int N_StaticMesh = 0;
@@ -407,6 +409,14 @@ AActor* Primitive::ConvertToStaticMesh()
 
 }
 
+
+AActor* Primitive::ConvertToStaticMesh(const TArray<AActor*> bs, FString name) {
+	GEditor->DoConvertActors(bs, AStaticMeshActor::StaticClass(), TSet<FString>(), true, FString("/Game") / name);
+	AActor* ac = brushes[0];
+	brushes.Empty();
+	return ac;
+}
+
 AActor* Primitive::ConvertToStaticMesh(const TArray<AActor*> bs)
 {
 	char buffer[32];
@@ -564,6 +574,22 @@ int Primitive::Box(float px, float py, float pz, float rx, float ry, float rz, f
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a Cube"));
 	BoxCreation op = BoxCreation();
+	op.op = TypeOP::Cube;
+	op.scale = FVector(sx, sy, sz);
+	op.pos = FVector(px, py, pz);
+	op.rot = MyLookRotation(FVector(rx, ry, rz), FVector(tx, ty, tz));
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse();
+	return listActor.Add(newActor);
+}
+
+int Primitive::RightCuboid(float px, float py, float pz, float rx, float ry, float rz, float tx, float ty, float tz, float sx, float sy, float sz)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Creating a RightCuboid"));
+	RightCuboidCreation op = RightCuboidCreation();
 	op.op = TypeOP::Cube;
 	op.scale = FVector(sx, sy, sz);
 	op.pos = FVector(px, py, pz);

@@ -14,6 +14,8 @@
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/Selection.h"
 #include "CustomBrushes/KhepriCylinder.h"
+#include "CustomBrushes/KhepriBox.h"
+#include "CustomBrushes/KhepriRightCuboid.h"
 
 #define LOCTEXT_NAMESPACE "BrushBuilder"
 
@@ -430,4 +432,133 @@ void FBSPOps::bspValidateBrush(UModel* Brush, bool ForceValidate, bool DoStatusU
 
 	// Build bounds.
 	Brush->BuildBound();
+}
+
+UKhepriBox::UKhepriBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FName NAME_Cube;
+		FConstructorStatics()
+			: NAME_Cube(TEXT("Box"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	X = 200.0f;
+	Y = 200.0f;
+	Z = 200.0;
+	GroupName = ConstructorStatics.NAME_Cube;
+	BitmapFilename = TEXT("Btn_Box");
+	ToolTip = TEXT("BrushBuilderName_Cube");
+}
+
+void UKhepriBox::BuildCube(int32 Direction, float dx, float dy, float dz) {
+	int32 n = GetVertexCount();
+
+	for (int32 i = -1; i < 2; i += 2)
+		for (int32 j = -1; j < 2; j += 2)
+			for (int32 k = 0; k < 2; k += 1)
+				Vertex3f(i * dx / 2, j * dy / 2, k * dz );
+
+	Poly4i(Direction, n + 0, n + 1, n + 3, n + 2);
+	Poly4i(Direction, n + 2, n + 3, n + 7, n + 6);
+	Poly4i(Direction, n + 6, n + 7, n + 5, n + 4);
+	Poly4i(Direction, n + 4, n + 5, n + 1, n + 0);
+	Poly4i(Direction, n + 3, n + 1, n + 5, n + 7);
+	Poly4i(Direction, n + 0, n + 2, n + 6, n + 4);
+}
+
+bool UKhepriBox::Build(UWorld* InWorld, ABrush* InBrush)
+{
+	if (Z <= 0 || Y <= 0 || X <= 0)
+		return BadParameters(LOCTEXT("CubeInvalidDimensions", "Invalid cube dimensions"));
+
+
+	BeginBrush(false, GroupName);
+	BuildCube(+1, X, Y, Z);
+
+	return EndBrush(InWorld, InBrush);
+}
+
+void UKhepriBox::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (PropertyChangedEvent.Property)
+	{
+		static FName Name_X(GET_MEMBER_NAME_CHECKED(UKhepriBox, X));
+		static FName Name_Y(GET_MEMBER_NAME_CHECKED(UKhepriBox, Y));
+		static FName Name_Z(GET_MEMBER_NAME_CHECKED(UKhepriBox, Z));
+
+
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+
+UKhepriRightCuboid::UKhepriRightCuboid(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FName NAME_Cube;
+		FConstructorStatics()
+			: NAME_Cube(TEXT("RightCuboid"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	X = 200.0f;
+	Y = 200.0f;
+	Z = 200.0;
+	GroupName = ConstructorStatics.NAME_Cube;
+	BitmapFilename = TEXT("Btn_Box");
+	ToolTip = TEXT("BrushBuilderName_Cube");
+}
+
+void UKhepriRightCuboid::BuildCube(int32 Direction, float dx, float dy, float dz) {
+	int32 n = GetVertexCount();
+
+	for (int32 i = -1; i < 1; i += 1)
+		for (int32 j = -1; j < 1; j += 1)
+			for (int32 k = 0; k < 2; k += 1)
+				Vertex3f(i * dx , j * dy , k * dz);
+
+	Poly4i(Direction, n + 0, n + 1, n + 3, n + 2);
+	Poly4i(Direction, n + 2, n + 3, n + 7, n + 6);
+	Poly4i(Direction, n + 6, n + 7, n + 5, n + 4);
+	Poly4i(Direction, n + 4, n + 5, n + 1, n + 0);
+	Poly4i(Direction, n + 3, n + 1, n + 5, n + 7);
+	Poly4i(Direction, n + 0, n + 2, n + 6, n + 4);
+}
+
+bool UKhepriRightCuboid::Build(UWorld* InWorld, ABrush* InBrush)
+{
+	if (Z <= 0 || Y <= 0 || X <= 0)
+		return BadParameters(LOCTEXT("CubeInvalidDimensions", "Invalid cube dimensions"));
+
+
+	BeginBrush(false, GroupName);
+	BuildCube(+1, X, Y, Z);
+
+	return EndBrush(InWorld, InBrush);
+}
+
+void UKhepriRightCuboid::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (PropertyChangedEvent.Property)
+	{
+		static FName Name_X(GET_MEMBER_NAME_CHECKED(UKhepriBox, X));
+		static FName Name_Y(GET_MEMBER_NAME_CHECKED(UKhepriBox, Y));
+		static FName Name_Z(GET_MEMBER_NAME_CHECKED(UKhepriBox, Z));
+
+
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }

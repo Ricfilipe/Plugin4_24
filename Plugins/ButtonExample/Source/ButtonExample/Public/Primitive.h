@@ -57,6 +57,7 @@ namespace Primitive {
 	AActor* ConvertToStaticMesh();
 	void spawnCustom(FVector objectPosition, FRotator objectRotation, float height, TArray<FVector> vertices, int size, bool addictive);
 	AActor* ConvertToStaticMesh(FString name);
+	AActor* ConvertToStaticMesh(const TArray<AActor*> bs, FString name);
 	AActor* ConvertToStaticMesh( const TArray<AActor*> bs);
 
 	//BIM constructions
@@ -89,6 +90,8 @@ namespace Primitive {
 	int Cone(float px, float py, float pz, float rx, float ry, float rz, float height, float radius);
 
 	int  Box(float px, float py, float pz, float rx, float ry, float rz, float tx, float ty, float tz, float sx, float sy, float sz);
+
+	int  RightCuboid(float px, float py, float pz, float rx, float ry, float rz, float tx, float ty, float tz, float sx, float sy, float sz);
 
 	int CopyMesh(char* label, int actor, float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz, const char* mat);
 }

@@ -11,7 +11,8 @@ namespace rpi_service {
 
 RpiService::RpiService() {
 	ADD_FUNCTION(Primitive::Sphere);
-    ADD_FUNCTION(Primitive::Box);
+    //ADD_FUNCTION(Primitive::Box);
+
 	UE_LOG(LogThread, Log, TEXT("Created Thread"));
 }
 
