@@ -85,7 +85,7 @@ namespace Primitive {
 
 	int StaticMesh(char* label, char* myStaticMesh, float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz, const char* mat);
 
-	int Cylinder(float x, float y, float z, float radius, float rx, float ry, float rz);
+	int Cylinder(float x, float y, float z, float rx, float ry, float rz, float height, float radius);
 
 	int Cone(float px, float py, float pz, float rx, float ry, float rz, float height, float radius);
 

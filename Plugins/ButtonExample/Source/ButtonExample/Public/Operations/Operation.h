@@ -8,12 +8,12 @@
 /**
  * 
  */
-#define rescale 100
 
 
+#define rescale 200
 enum TypeOP
 {
-	Sphere,Cube,Cylinder,Cone,RightCuboid
+	Sphere,Cube,Cylinder,Cone
 };
 
 class BUTTONEXAMPLE_API Operation 
@@ -34,5 +34,4 @@ private:
 	AActor* CreateCylinder();
 	AActor* CreateCone();
 	AActor* CreateCube();
-	AActor* CreateRightCuboid();
 };
