@@ -10,7 +10,7 @@
 #include "EditorModeManager.h"
 #include "Containers/Queue.h"
 #include "Operations/Operation.h"
-
+#include <vector>
 
 namespace Primitive {
 	
