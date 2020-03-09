@@ -16,6 +16,9 @@
 #include "CustomBrushes/KhepriCylinder.h"
 #include "CustomBrushes/KhepriBox.h"
 #include "CustomBrushes/KhepriRightCuboid.h"
+#include "CustomBrushes/KhepriPyramid.h"
+#include "CustomBrushes/KhepriPyramidFrustum.h"
+
 
 #define LOCTEXT_NAMESPACE "BrushBuilder"
 
@@ -561,4 +564,149 @@ void UKhepriRightCuboid::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+void UKhepriPyramid::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) {
+	if (PropertyChangedEvent.Property)
+	{
+
+
+
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+bool UKhepriPyramid::Build(UWorld* InWorld, ABrush* InBrush) {
+
+	if(base.Num() <= 2 )
+		return BadParameters(LOCTEXT("PyramidInvalid", "Invalid number of vertices"));
+
+		BeginBrush(false, GroupName);
+	BuildPyramid(+1, top, base,Size);
+
+	PolyBegin(1, FName(TEXT("Cap")));
+	for (int j = 0 ; j< Size ; j++)
+		Polyi(j);
+	PolyEnd();
+
+	return EndBrush(InWorld, InBrush);
+}
+
+void UKhepriPyramid::BuildPyramid(int32 Direction, FVector top, TArray<FVector> vertices, int number){
+	for (int j = 0; j < number; j++) {
+		Vertex3f(vertices[j].X , vertices[j].Y, vertices[j].Z);
+	}
+	Vertex3f(top.X, top.Y, top.Z);
+
+	for (int i = 0; i < number; i++) {
+		Poly3i(Direction, number,  (i + 1) % number, i);
+	}
+}
+
+UKhepriPyramid::UKhepriPyramid(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FName NAME_Pyramid;
+		FConstructorStatics()
+			: NAME_Pyramid(TEXT("Pyramid"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	
+	TArray<FVector> cap;
+	top = FVector(0, 0, 100);
+	cap.Add(FVector(100, 0, 0));
+	cap.Add(FVector(0, -100,0 ));
+	cap.Add(FVector(-100, 0, 0));
+	cap.Add(FVector(0, 100, 0));
+	Size = cap.Num();
+	base = cap;
+
+	GroupName = ConstructorStatics.NAME_Pyramid;
+	BitmapFilename = TEXT("Btn_Pyramid");
+	ToolTip = TEXT("BrushBuilderName_Pyramid");
+}
+
+
+
+void UKhepriPyramidFrustum::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) {
+	if (PropertyChangedEvent.Property)
+	{
+
+
+
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+bool UKhepriPyramidFrustum::Build(UWorld* InWorld, ABrush* InBrush) {
+
+	if (base.Num() <= 2 && base.Num() == top.Num())
+		return BadParameters(LOCTEXT("PyramidInvalid", "Invalid number of vertices"));
+
+	BeginBrush(false, GroupName);
+	BuildPyramidFrustum(+1, top, base, Size);
+
+	PolyBegin(1, FName(TEXT("Cap")));
+	for (int j = 0; j < Size * 2; j = j + 2)
+		Polyi(j);
+	PolyEnd();
+
+	PolyBegin(1, FName(TEXT("Cap")));
+	for (int j = Size * 2 - 1; j > 0; j = j - 2)
+		Polyi(j);
+	PolyEnd();
+
+	return EndBrush(InWorld, InBrush);
+}
+
+void UKhepriPyramidFrustum::BuildPyramidFrustum(int32 Direction, TArray<FVector>  head, TArray<FVector> vertices, int number){
+	for (int j = 0; j < number; j++) {
+		Vertex3f(vertices[j].X, vertices[j].Y, vertices[j].Z);
+		Vertex3f(head[j].X, head[j].Y, head[j].Z);
+	}
+	
+
+	for (int32 i = 0; i < number; i++)
+		Poly4i(Direction, i * 2, i * 2 + 1, ((i * 2 + 3) % (2 * number)), ((i * 2 + 2) % (2 * number)), FName(TEXT("Wall")));
+}
+
+UKhepriPyramidFrustum::UKhepriPyramidFrustum(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FName NAME_Pyramid;
+		FConstructorStatics()
+			: NAME_Pyramid(TEXT("PyramidFrustum"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+
+	TArray<FVector> cap;
+	TArray<FVector> head;
+	head.Add(FVector(50, 0, 50));
+	head.Add(FVector(0, -50, 50));
+	head.Add(FVector(-50, 0, 50));
+	head.Add(FVector(0, 50, 50));
+	cap.Add(FVector(100, 0, 0));
+	cap.Add(FVector(0, -100, 0));
+	cap.Add(FVector(-100, 0, 0));
+	cap.Add(FVector(0, 100, 0));
+	Size = cap.Num();
+	base = cap;
+	top = head;
+	GroupName = ConstructorStatics.NAME_Pyramid;
+	BitmapFilename = TEXT("Btn_Pyramid");
+	ToolTip = TEXT("BrushBuilderName_Pyramid");
 }
