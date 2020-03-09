@@ -106,7 +106,7 @@ void FButtonExampleModule::StartupModule()
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
 
 	 FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FButtonExampleModule::checkQueue),0.0f);
-	
+	 producer = new FRunnableProducer();
 }
 
 void FButtonExampleModule::ShutdownModule()
@@ -230,7 +230,7 @@ void  FButtonExampleModule::OnZChanged(float z) {
 }
 
  FReply FButtonExampleModule::ButtonReply() {
-	 producer = new FRunnableProducer();
+
 	return FReply::Handled();
 }
 

@@ -411,9 +411,11 @@ AActor* Primitive::ConvertToStaticMesh()
 
 
 AActor* Primitive::ConvertToStaticMesh(const TArray<AActor*> bs, FString name) {
-	GEditor->DoConvertActors(bs, AStaticMeshActor::StaticClass(), TSet<FString>(), true, FString("/Game") / name);
-	AActor* ac = brushes[0];
-	brushes.Empty();
+	
+	name = name.Replace( TEXT(".") , TEXT("a"));
+	name = name.Replace(TEXT(":"), TEXT("b"));
+	GEditor->DoConvertActors(bs, AStaticMeshActor::StaticClass(), TSet<FString>(), true, name );
+	AActor* ac = bs[0];
 	return ac;
 }
 
@@ -537,14 +539,18 @@ int Primitive::StaticMesh(char* label, char* myStaticMesh, float px, float py, f
 	return listActor.Add(newActor);
 }
 */
-int Primitive::Cylinder(float x, float y, float z, float rx, float ry, float rz, float height, float radius)
+int Primitive::Cylinder(float x, float y, float z, float radius, float rx, float ry, float rz)
 {
+	
+	FVector top(x, y, z);
+	FVector bot(rx, ry, rz);
 	UE_LOG(LogTemp, Warning, TEXT("Creating a Cylinder"));
 	Operation op = Operation();
 	op.op = TypeOP::Cylinder;
-	op.pos = FVector(x, y, z);
+	op.pos = bot;
 	op.radius = radius;
-	op.height = height;
+	op.height = FVector::Dist(top,bot);
+	op.rot = (top - bot).Rotation();
 	queue->Enqueue(op);
 	waitForRequest();
 	Response r;
@@ -590,7 +596,7 @@ int Primitive::RightCuboid(float px, float py, float pz, float rx, float ry, flo
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a RightCuboid"));
 	RightCuboidCreation op = RightCuboidCreation();
-	op.op = TypeOP::Cube;
+	op.op = TypeOP::RightCuboid;
 	op.scale = FVector(sx, sy, sz);
 	op.pos = FVector(px, py, pz);
 	op.rot = MyLookRotation(FVector(rx, ry, rz), FVector(tx, ty, tz));

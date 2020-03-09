@@ -1,4 +1,5 @@
 using Khepri
 backend(unreal)
-sphere()
 box()
+right_cuboid()
+cylinder()
