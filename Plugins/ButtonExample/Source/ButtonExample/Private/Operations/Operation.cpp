@@ -13,9 +13,10 @@
 #include "EditorModeManager.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Primitive.h"
-#include "Builders/CylinderBuilder.h"
+#include "CustomBrushes/KhepriCylinder.h"
 #include "Builders/ConeBuilder.h"
-#include "Builders/CubeBuilder.h"
+#include "CustomBrushes/KhepriBox.h"
+#include "CustomBrushes/KhepriRightCuboid.h"
 
 Response Operation::execute()
 {
@@ -30,6 +31,9 @@ Response Operation::execute()
 		return Response(CreateCone());
 		break;
 	case Cylinder:
+		return Response(CreateCylinder());
+		break;
+	case RightCuboid:
 		return Response(CreateCylinder());
 		break;
 	}
@@ -69,7 +73,7 @@ AActor* Operation::CreateCylinder() {
 	FTransform objectTrasform(rot, pos, FVector(1, 1, 1));
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 	ABrush* NewBrush = World->SpawnBrush();
-	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UCylinderBuilder::StaticClass(), NAME_None, RF_Transactional);
+	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UKhepriCylinder::StaticClass(), NAME_None, RF_Transactional);
 	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
 	NewBrush->Brush->Initialize(NewBrush, false);
 	NewBrush->SetActorRelativeTransform(objectTrasform);
@@ -81,15 +85,22 @@ AActor* Operation::CreateCylinder() {
 	}
 	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
 	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
-	UCylinderBuilder* builder = (UCylinderBuilder*)NewBrush->BrushBuilder;
-	builder->Z = 2 * height;
-	builder->OuterRadius = radius*2;
+	UKhepriCylinder* builder = (UKhepriCylinder*)NewBrush->BrushBuilder;
+	builder->Height = rescale * height;
+	builder->Radius = radius*rescale;
 	builder->Sides = 50;
 	builder->Build(World, NewBrush);
 	GEditor->RebuildAlteredBSP();
 	TArray<AActor*> bs;
 	bs.Add(NewBrush);
-	return Primitive::ConvertToStaticMesh(bs);
+	AActor*realActor = Primitive::ConvertToStaticMesh(bs, FString("/Game/Cylinder" +
+		FString::SanitizeFloat(height) + ":" +
+		FString::SanitizeFloat(radius) + ":" +
+		FString::SanitizeFloat(builder->Sides)
+	));
+
+	realActor->SetActorRotation(rot);
+	return realActor;
 }
 
 AActor* Operation::CreateCone()
@@ -117,7 +128,11 @@ AActor* Operation::CreateCone()
 	GEditor->RebuildAlteredBSP();
 	TArray<AActor*> bs;
 	bs.Add(NewBrush);
-	return Primitive::ConvertToStaticMesh(bs);
+	return Primitive::ConvertToStaticMesh(bs, FString("/Game/Cone" +
+		FString::SanitizeFloat(height) + ":" +
+		FString::SanitizeFloat(radius) + ":" +
+		FString::SanitizeFloat(builder->Sides)
+	));
 }
 
 AActor* Operation::CreateCube()
@@ -125,7 +140,7 @@ AActor* Operation::CreateCube()
 	FTransform objectTrasform(rot, pos, FVector(1, 1, 1));
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 	ABrush* NewBrush = World->SpawnBrush();
-	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UCubeBuilder::StaticClass(), NAME_None, RF_Transactional);
+	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UKhepriBox::StaticClass(), NAME_None, RF_Transactional);
 	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
 	NewBrush->Brush->Initialize(NewBrush, false);
 	NewBrush->SetActorRelativeTransform(objectTrasform);
@@ -138,16 +153,54 @@ AActor* Operation::CreateCube()
 	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
 	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
 
-	UCubeBuilder* builder = (UCubeBuilder*)NewBrush->BrushBuilder;
-	builder->X = scale.X;
-	builder->Y = scale.Y;
-	builder->Z = scale.Z;
+	UKhepriBox* builder = (UKhepriBox*)NewBrush->BrushBuilder;
+	builder->X = scale.X * rescale;
+	builder->Y = scale.Y * rescale;
+	builder->Z = scale.Z * rescale;
 	builder->Build(World, NewBrush);
 
 	GEditor->RebuildAlteredBSP();
 	TArray<AActor*> bs;
 	bs.Add(NewBrush);
-	return Primitive::ConvertToStaticMesh(bs);
+	return Primitive::ConvertToStaticMesh(bs, FString("/Game/Box" +
+		FString::SanitizeFloat(scale.X) + ":" +
+		FString::SanitizeFloat(scale.Y) + ":" +
+		FString::SanitizeFloat(scale.Z)
+	));
+}
+
+AActor* Operation::CreateRightCuboid()
+{
+	FTransform objectTrasform(rot, pos, FVector(1, 1, 1));
+	UWorld* World = GEditor->GetEditorWorldContext().World();
+	ABrush* NewBrush = World->SpawnBrush();
+	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UKhepriRightCuboid::StaticClass(), NAME_None, RF_Transactional);
+	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
+	NewBrush->Brush->Initialize(NewBrush, false);
+	NewBrush->SetActorRelativeTransform(objectTrasform);
+	if (true) {
+		NewBrush->BrushType = EBrushType::Brush_Add;
+	}
+	else {
+		NewBrush->BrushType = EBrushType::Brush_Subtract;
+	}
+	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
+	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
+
+	UKhepriRightCuboid* builder = (UKhepriRightCuboid*)NewBrush->BrushBuilder;
+	builder->X = scale.X * rescale;
+	builder->Y = scale.Y * rescale;
+	builder->Z = scale.Z * rescale;
+	builder->Build(World, NewBrush);
+
+	GEditor->RebuildAlteredBSP();
+	TArray<AActor*> bs;
+	bs.Add(NewBrush);
+	return Primitive::ConvertToStaticMesh(bs, FString("/Game/RightCuboid" +
+		FString::SanitizeFloat(scale.X) + ":" +
+		FString::SanitizeFloat(scale.Y) + ":" +
+		FString::SanitizeFloat(scale.Z)
+	));
 }
 
 
