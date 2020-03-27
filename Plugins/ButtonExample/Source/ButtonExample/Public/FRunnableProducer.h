@@ -11,14 +11,16 @@ class FRunnableProducer : public FRunnable
 {
 	TQueue<Operation>* _queue;
 	TQueue<Operation>* responsequeue;
-	FRunnableThread* Thread;
+	
 	rpi_service::RpiService* rpi;
 
 
 public:
+	FRunnableThread* Thread;
 	FRunnableProducer();
 	virtual ~FRunnableProducer();
 	virtual uint32 Run();
 	virtual void Stop();
+	void Kill();
 };
 

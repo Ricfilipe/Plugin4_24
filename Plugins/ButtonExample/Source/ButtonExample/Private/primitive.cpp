@@ -25,93 +25,42 @@
 int cube = 0, cylinder = 0, sphere = 0, object = 0;
 int N_StaticMesh = 0;
 TArray< AActor* > brushes;
-
+int parent = -1;
 TQueue<Operation>* queue = new TQueue<Operation, EQueueMode::Spsc>();
 TQueue<Response>* responsequeue = new TQueue<Response, EQueueMode::Spsc>();
 //--------------------------------------------------------Placing Objects---------------------------------------------------------------------------//
 
 TArray<AActor*> listActor;
 
+
+
 FRotator MyLookRotation(FVector lookAt, FVector upDirection)
 {
 
+	lookAt.Normalize();
+	upDirection.Normalize();
 
-	FVector forward = lookAt;
-	FVector up = upDirection;
-
-
-	forward = forward.GetSafeNormal();
-	up = up - (forward * FVector::DotProduct(up, forward));
-	up = up.GetSafeNormal();
-
-	///////////////////////
-
-
-
-
-
-	FVector vector = forward.GetSafeNormal();
-	FVector vector2 = FVector::CrossProduct(up, vector);
-	FVector vector3 = FVector::CrossProduct(vector, vector2);
-	float m00 = vector2.X;
-	float m01 = vector2.Y;
-	float m02 = vector2.Z;
-	float m10 = vector3.X;
-	float m11 = vector3.Y;
-	float m12 = vector3.Z;
-	float m20 = vector.X;
-	float m21 = vector.Y;
-	float m22 = vector.Z;
-
-
-	float num8 = (m00 + m11) + m22;
-	FQuat quaternion = FQuat();
-	if (num8 > 0.0f)
-	{
-		float num = (float)FMath::Sqrt(num8 + 1.0f);
-		quaternion.W = num * 0.5f;
-		num = 0.5f / num;
-		quaternion.X = (m12 - m21) * num;
-		quaternion.Y = (m20 - m02) * num;
-		quaternion.Z = (m01 - m10) * num;
-		return FRotator(quaternion);
+	if (lookAt == FVector::ZeroVector) {
+		return FRotator(0, 0, 0);
+}
+	if (upDirection != lookAt) {
+		
+		FVector v = lookAt + upDirection * -FVector::DotProduct(upDirection, lookAt);
+		FQuat q = FQuat::FindBetween(FVector::ForwardVector, v);
+		return (FQuat::FindBetween(v, lookAt) * q).Rotator();
 	}
-	if ((m00 >= m11) && (m00 >= m22))
-	{
-		float num7 = (float)FMath::Sqrt(((1.0f + m00) - m11) - m22);
-		float num4 = 0.5f / num7;
-		quaternion.X = 0.5f * num7;
-		quaternion.Y = (m01 + m10) * num4;
-		quaternion.Z = (m02 + m20) * num4;
-		quaternion.W = (m12 - m21) * num4;
-		return FRotator(quaternion);
-	}
-	if (m11 > m22)
-	{
-		float num6 = (float)FMath::Sqrt(((1.0f + m11) - m00) - m22);
-		float num3 = 0.5f / num6;
-		quaternion.X = (m10 + m01) * num3;
-		quaternion.Y = 0.5f * num6;
-		quaternion.Z = (m21 + m12) * num3;
-		quaternion.W = (m20 - m02) * num3;
-		return FRotator(quaternion);
-	}
-	float num5 = (float)FMath::Sqrt(((1.0f + m22) - m00) - m11);
-	float num2 = 0.5f / num5;
-	quaternion.X = (m20 + m02) * num2;
-	quaternion.Y = (m21 + m12) * num2;
-	quaternion.Z = 0.5f * num5;
-	quaternion.W = (m01 - m10) * num2;
 
-
-	return FRotator(quaternion);
+	return FQuat::FindBetween(FVector::ForwardVector, lookAt).Rotator();
 }
 
 void waitForRequest() {
 	while (responsequeue->IsEmpty()) {
-		FPlatformProcess::Sleep(0.01f);
+		
 	}
 }
+
+
+
 
 /*
   int Primitive::PlacingStaticMesh( char* label,char* myStaticMesh, FVector objectPosition, FRotator objectRotation, FVector objectScale, const char* mat ) {
@@ -134,7 +83,7 @@ void execute(Operation op) {
 bool  Primitive::checkQueue(float delta, int SpF) {
 	int num = 0;
 	Operation fo;
-	while (!(queue->IsEmpty()) && num < SpF) {
+	while (!(queue->IsEmpty()) && num < 100) {
 
 		queue->Dequeue(fo);
 
@@ -147,34 +96,6 @@ bool  Primitive::checkQueue(float delta, int SpF) {
 
 //Class'/Script/CinematicCamera.CineCameraActor'
 
-// Delete All Objects
-static  void DeleteAll() {
-	UWorld* currentWorld = GEditor->GetEditorWorldContext().World();
-	TArray<AActor*> toRemove;
-
-	int size = currentWorld->PersistentLevel->Actors.Num();
-
-	for (int i = 0; i < size; i++) {
-		if (currentWorld->PersistentLevel->Actors[i]->ActorHasTag(FName("StaticMesh"))) {
-			toRemove.Add(currentWorld->PersistentLevel->Actors[i]);
-		};
-	}
-
-	size = toRemove.Num();
-
-	for (int i = 0; i < size; i++) {
-
-		currentWorld->RemoveActor(toRemove[i], true);
-		toRemove[i]->Destroy();
-		delete toRemove[i];
-		toRemove[i] = NULL;
-	}
-	currentWorld->CleanupActors();
-	GEditor->EditorUpdateComponents();
-	currentWorld->UpdateWorldComponents(true, false);
-	currentWorld->ForceGarbageCollection(true);
-	GLevelEditorModeTools().MapChangeNotify();
-}
 
 //Boolean Operations
 
@@ -415,7 +336,8 @@ AActor* Primitive::ConvertToStaticMesh(const TArray<AActor*> bs, FString name) {
 	name = name.Replace( TEXT(".") , TEXT("a"));
 	name = name.Replace(TEXT(":"), TEXT("b"));
 	GEditor->DoConvertActors(bs, AStaticMeshActor::StaticClass(), TSet<FString>(), true, name );
-	AActor* ac = bs[0];
+	TArray<AActor*> list = GEditor->GetEditorWorldContext().World()->GetCurrentLevel()->Actors;
+	AActor* ac = list[list.Num()-1];
 	return ac;
 }
 
@@ -539,18 +461,19 @@ int Primitive::StaticMesh(char* label, char* myStaticMesh, float px, float py, f
 	return listActor.Add(newActor);
 }
 */
-int Primitive::Cylinder(float x, float y, float z, float radius, float rx, float ry, float rz)
+int Primitive::Cylinder(FVector bot, float radius, FVector top)
 {
 	
-	FVector top(x, y, z);
-	FVector bot(rx, ry, rz);
 	UE_LOG(LogTemp, Warning, TEXT("Creating a Cylinder"));
 	Operation op = Operation();
 	op.op = TypeOP::Cylinder;
 	op.pos = bot;
 	op.radius = radius;
 	op.height = FVector::Dist(top,bot);
-	op.rot = (top - bot).Rotation();
+	op.rot = FQuat::FindBetween(FVector(0,0,1),top-bot).Rotator();
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
 	queue->Enqueue(op);
 	waitForRequest();
 	Response r;
@@ -568,6 +491,9 @@ int Primitive::Cone(float px, float py, float pz, float rx, float ry, float rz, 
 	op.rot = FRotator(rx, ry, rz);
 	op.radius = radius;
 	op.height = height;
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
 	queue->Enqueue(op);
 	waitForRequest();
 	Response r;
@@ -576,30 +502,43 @@ int Primitive::Cone(float px, float py, float pz, float rx, float ry, float rz, 
 	return listActor.Add(newActor);
 }
 
-int Primitive::Box(float px, float py, float pz, float rx, float ry, float rz, float tx, float ty, float tz, float sx, float sy, float sz)
+int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Creating a Cube"));
-	BoxCreation op = BoxCreation();
-	op.op = TypeOP::Cube;
-	op.scale = FVector(sx, sy, sz);
-	op.pos = FVector(px, py, pz);
-	op.rot = MyLookRotation(FVector(rx, ry, rz), FVector(tx, ty, tz));
-	queue->Enqueue(op);
-	waitForRequest();
-	Response r;
-	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
-	return listActor.Add(newActor);
+
+	//mover para main thread
+
+
+		UE_LOG(LogTemp, Warning, TEXT("Creating a Cube"));
+		BoxCreation op = BoxCreation();
+		op.op = TypeOP::Cube;
+		op.scale = FVector(sx, sy, sz);
+		op.pos = pos;
+		op.rot = MyLookRotation(vx, vy);
+		if (parent > -1) {
+			op.parent = listActor[parent];
+		}
+		queue->Enqueue(op);
+		waitForRequest();
+		Response r;
+		responsequeue->Dequeue(r);
+		AActor* newActor = r.getResponse();
+		return listActor.Add(newActor);
+	
 }
 
-int Primitive::RightCuboid(float px, float py, float pz, float rx, float ry, float rz, float tx, float ty, float tz, float sx, float sy, float sz)
+
+//TODO Adicionar campo angle
+int Primitive::RightCuboid(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a RightCuboid"));
 	RightCuboidCreation op = RightCuboidCreation();
 	op.op = TypeOP::RightCuboid;
 	op.scale = FVector(sx, sy, sz);
-	op.pos = FVector(px, py, pz);
-	op.rot = MyLookRotation(FVector(rx, ry, rz), FVector(tx, ty, tz));
+	op.pos = pos;
+	op.rot = MyLookRotation(vx, vy);
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
 	queue->Enqueue(op);
 	waitForRequest();
 	Response r;
@@ -607,6 +546,87 @@ int Primitive::RightCuboid(float px, float py, float pz, float rx, float ry, flo
 	AActor* newActor = r.getResponse();
 	return listActor.Add(newActor);
 }
+int Primitive::Pyramid(TArray<FVector> ps, FVector q)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Creating a Pyramid"));
+	Operation op = Operation();
+	op.op = TypeOP::Pyramid;
+	op.topPoint = q;
+	op.base = ps;
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse();
+	return listActor.Add(newActor);
+}
+int Primitive::PyramidFrustum(TArray<FVector> ps, TArray<FVector> q)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Creating a Pyramid Frustum"));
+	Operation op = Operation();
+	op.op = TypeOP::PyramidFrustum;
+	op.top = q;
+	op.base = ps;
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse();
+	return listActor.Add(newActor);
+}
+
+int Primitive::Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, float h)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Creating Slab"));
+	Operation op = Operation();
+	op.op = TypeOP::Slab;
+	op.height = h*100;
+	op.base = contour;
+	op.holes = holes;
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse();
+	return listActor.Add(newActor);
+}
+
+int Primitive::DeleteAll()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Deleting All Actors"));
+	Operation op = Operation();
+	op.op = TypeOP::Delete;
+	op.selectedActors = listActor;
+	listActor.Empty();
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	
+	return 0;
+}
+
+
+int Primitive::CurrentParent() {
+	return parent;
+}
+
+int Primitive::SetCurrentParent(int newParent) {
+	if (newParent < listActor.Num()) {
+		parent = newParent;
+	}
+	return parent;
+}
+
 /*
 int Primitive::CopyMesh(char* label, int actor, float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz, const char* mat)
 {

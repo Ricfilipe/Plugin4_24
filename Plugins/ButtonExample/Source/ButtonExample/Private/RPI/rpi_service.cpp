@@ -7,13 +7,19 @@
 DEFINE_LOG_CATEGORY(LogThread);
 
 
+
 namespace rpi_service {
 
 RpiService::RpiService() {
     ADD_FUNCTION(Primitive::Box);
     ADD_FUNCTION(Primitive::RightCuboid);
     ADD_FUNCTION(Primitive::Cylinder);
-
+    ADD_FUNCTION(Primitive::Pyramid);
+    ADD_FUNCTION(Primitive::PyramidFrustum);
+    ADD_FUNCTION(Primitive::DeleteAll);
+    ADD_FUNCTION(Primitive::Slab);
+    ADD_FUNCTION(Primitive::CurrentParent);
+    ADD_FUNCTION(Primitive::SetCurrentParent);
 	UE_LOG(LogThread, Log, TEXT("Created Thread"));
 }
 
@@ -28,6 +34,8 @@ void rpi_service::RpiService::Run(unsigned short port) {
     binary_stream::BinaryStream socket_stream(io_service, binary_stream::Endianess::kLittle);
     UE_LOG(LogThread, Warning, TEXT("Waiting for connection"));
     acceptor.accept(socket_stream.GetSocket());
+
+
 	UE_LOG(LogThread, Warning, TEXT("Connected to Something"));
     boost::system::error_code error;
     for (;;) {
@@ -49,6 +57,7 @@ void rpi_service::RpiService::Run(unsigned short port) {
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;
   }
+  UE_LOG(LogThread, Log, TEXT("Connection Ended"));
 }
 
 } // namespace rpi_service

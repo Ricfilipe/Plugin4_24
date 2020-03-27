@@ -437,7 +437,7 @@ void FBSPOps::bspValidateBrush(UModel* Brush, bool ForceValidate, bool DoStatusU
 	Brush->BuildBound();
 }
 
-UKhepriBox::UKhepriBox(const FObjectInitializer& ObjectInitializer)
+UKhepriRightCuboid::UKhepriRightCuboid(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
@@ -459,78 +459,13 @@ UKhepriBox::UKhepriBox(const FObjectInitializer& ObjectInitializer)
 	ToolTip = TEXT("BrushBuilderName_Cube");
 }
 
-void UKhepriBox::BuildCube(int32 Direction, float dx, float dy, float dz) {
+void UKhepriRightCuboid::BuildCube(int32 Direction, float dx, float dy, float dz) {
 	int32 n = GetVertexCount();
 
 	for (int32 i = -1; i < 2; i += 2)
 		for (int32 j = -1; j < 2; j += 2)
 			for (int32 k = 0; k < 2; k += 1)
 				Vertex3f(i * dx / 2, j * dy / 2, k * dz );
-
-	Poly4i(Direction, n + 0, n + 1, n + 3, n + 2);
-	Poly4i(Direction, n + 2, n + 3, n + 7, n + 6);
-	Poly4i(Direction, n + 6, n + 7, n + 5, n + 4);
-	Poly4i(Direction, n + 4, n + 5, n + 1, n + 0);
-	Poly4i(Direction, n + 3, n + 1, n + 5, n + 7);
-	Poly4i(Direction, n + 0, n + 2, n + 6, n + 4);
-}
-
-bool UKhepriBox::Build(UWorld* InWorld, ABrush* InBrush)
-{
-	if (Z <= 0 || Y <= 0 || X <= 0)
-		return BadParameters(LOCTEXT("CubeInvalidDimensions", "Invalid cube dimensions"));
-
-
-	BeginBrush(false, GroupName);
-	BuildCube(+1, X, Y, Z);
-
-	return EndBrush(InWorld, InBrush);
-}
-
-void UKhepriBox::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
-{
-	if (PropertyChangedEvent.Property)
-	{
-		static FName Name_X(GET_MEMBER_NAME_CHECKED(UKhepriBox, X));
-		static FName Name_Y(GET_MEMBER_NAME_CHECKED(UKhepriBox, Y));
-		static FName Name_Z(GET_MEMBER_NAME_CHECKED(UKhepriBox, Z));
-
-
-	}
-
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-}
-
-
-UKhepriRightCuboid::UKhepriRightCuboid(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		FName NAME_Cube;
-		FConstructorStatics()
-			: NAME_Cube(TEXT("RightCuboid"))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
-	X = 200.0f;
-	Y = 200.0f;
-	Z = 200.0;
-	GroupName = ConstructorStatics.NAME_Cube;
-	BitmapFilename = TEXT("Btn_Box");
-	ToolTip = TEXT("BrushBuilderName_Cube");
-}
-
-void UKhepriRightCuboid::BuildCube(int32 Direction, float dx, float dy, float dz) {
-	int32 n = GetVertexCount();
-
-	for (int32 i = -1; i < 1; i += 1)
-		for (int32 j = -1; j < 1; j += 1)
-			for (int32 k = 0; k < 2; k += 1)
-				Vertex3f(i * dx , j * dy , k * dz);
 
 	Poly4i(Direction, n + 0, n + 1, n + 3, n + 2);
 	Poly4i(Direction, n + 2, n + 3, n + 7, n + 6);
@@ -566,6 +501,71 @@ void UKhepriRightCuboid::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
+
+UKhepriBox::UKhepriBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FName NAME_Cube;
+		FConstructorStatics()
+			: NAME_Cube(TEXT("RightCuboid"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	X = 200.0f;
+	Y = 200.0f;
+	Z = 200.0;
+	GroupName = ConstructorStatics.NAME_Cube;
+	BitmapFilename = TEXT("Btn_Box");
+	ToolTip = TEXT("BrushBuilderName_Cube");
+}
+
+void UKhepriBox::BuildCube(int32 Direction, float dx, float dy, float dz) {
+	int32 n = GetVertexCount();
+
+	for (int32 i = -1; i < 1; i += 1)
+		for (int32 j = -1; j < 1; j += 1)
+			for (int32 k = 0; k < 2; k += 1)
+				Vertex3f(i * dx , j * dy , k * dz);
+
+	Poly4i(Direction, n + 0, n + 1, n + 3, n + 2);
+	Poly4i(Direction, n + 2, n + 3, n + 7, n + 6);
+	Poly4i(Direction, n + 6, n + 7, n + 5, n + 4);
+	Poly4i(Direction, n + 4, n + 5, n + 1, n + 0);
+	Poly4i(Direction, n + 3, n + 1, n + 5, n + 7);
+	Poly4i(Direction, n + 0, n + 2, n + 6, n + 4);
+}
+
+bool UKhepriBox::Build(UWorld* InWorld, ABrush* InBrush)
+{
+	if (Z <= 0 || Y <= 0 || X <= 0)
+		return BadParameters(LOCTEXT("CubeInvalidDimensions", "Invalid cube dimensions"));
+
+
+	BeginBrush(false, GroupName);
+	BuildCube(+1, X, Y, Z);
+
+	return EndBrush(InWorld, InBrush);
+}
+
+void UKhepriBox::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (PropertyChangedEvent.Property)
+	{
+		static FName Name_X(GET_MEMBER_NAME_CHECKED(UKhepriBox, X));
+		static FName Name_Y(GET_MEMBER_NAME_CHECKED(UKhepriBox, Y));
+		static FName Name_Z(GET_MEMBER_NAME_CHECKED(UKhepriBox, Z));
+
+
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
 void UKhepriPyramid::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) {
 	if (PropertyChangedEvent.Property)
 	{
@@ -586,7 +586,7 @@ bool UKhepriPyramid::Build(UWorld* InWorld, ABrush* InBrush) {
 	BuildPyramid(+1, top, base,Size);
 
 	PolyBegin(1, FName(TEXT("Cap")));
-	for (int j = 0 ; j< Size ; j++)
+	for (int j = Size-1 ; j >= 0 ; j--)
 		Polyi(j);
 	PolyEnd();
 
@@ -600,7 +600,7 @@ void UKhepriPyramid::BuildPyramid(int32 Direction, FVector top, TArray<FVector> 
 	Vertex3f(top.X, top.Y, top.Z);
 
 	for (int i = 0; i < number; i++) {
-		Poly3i(Direction, number,  (i + 1) % number, i);
+		Poly3i(Direction, number, i,(i + 1) % number);
 	}
 }
 
@@ -658,8 +658,18 @@ bool UKhepriPyramidFrustum::Build(UWorld* InWorld, ABrush* InBrush) {
 	for (int j = 0; j < Size * 2; j = j + 2)
 		Polyi(j);
 	PolyEnd();
+	PolyBegin(-1, FName(TEXT("Cap")));
+	for (int j = 0; j < Size * 2; j = j + 2)
+		Polyi(j);
+	PolyEnd();
+
 
 	PolyBegin(1, FName(TEXT("Cap")));
+	for (int j = Size * 2 - 1; j > 0; j = j - 2)
+		Polyi(j);
+	PolyEnd();
+
+	PolyBegin(-1, FName(TEXT("Cap")));
 	for (int j = Size * 2 - 1; j > 0; j = j - 2)
 		Polyi(j);
 	PolyEnd();
@@ -668,14 +678,16 @@ bool UKhepriPyramidFrustum::Build(UWorld* InWorld, ABrush* InBrush) {
 }
 
 void UKhepriPyramidFrustum::BuildPyramidFrustum(int32 Direction, TArray<FVector>  head, TArray<FVector> vertices, int number){
-	for (int j = 0; j < number; j++) {
+	for (int j = number-1; j >= 0; j--) {
 		Vertex3f(vertices[j].X, vertices[j].Y, vertices[j].Z);
 		Vertex3f(head[j].X, head[j].Y, head[j].Z);
 	}
 	
 
-	for (int32 i = 0; i < number; i++)
+	for (int32 i = 0; i < number; i++) {
+		Poly4i(-Direction, i * 2, i * 2 + 1, ((i * 2 + 3) % (2 * number)), ((i * 2 + 2) % (2 * number)), FName(TEXT("Wall")));
 		Poly4i(Direction, i * 2, i * 2 + 1, ((i * 2 + 3) % (2 * number)), ((i * 2 + 2) % (2 * number)), FName(TEXT("Wall")));
+	}
 }
 
 UKhepriPyramidFrustum::UKhepriPyramidFrustum(const FObjectInitializer& ObjectInitializer)

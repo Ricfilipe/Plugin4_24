@@ -113,7 +113,8 @@ void FButtonExampleModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
-	delete producer;
+	producer->Kill();
+
 
 
 	FButtonExampleStyle::Shutdown();
@@ -231,6 +232,8 @@ void  FButtonExampleModule::OnZChanged(float z) {
 
  FReply FButtonExampleModule::ButtonReply() {
 
+	 producer->Kill();
+	 producer = new FRunnableProducer();
 	return FReply::Handled();
 }
 

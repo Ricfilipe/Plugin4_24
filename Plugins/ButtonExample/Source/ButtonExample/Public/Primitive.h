@@ -12,6 +12,8 @@
 #include "Operations/Operation.h"
 #include <vector>
 
+
+
 namespace Primitive {
 	
 	
@@ -85,15 +87,27 @@ namespace Primitive {
 
 	int StaticMesh(char* label, char* myStaticMesh, float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz, const char* mat);
 
-	int Cylinder(float x, float y, float z, float radius, float rx, float ry, float rz);
+	int Cylinder(FVector top, float radius, FVector bot);
 
 	int Cone(float px, float py, float pz, float rx, float ry, float rz, float height, float radius);
 
-	int  Box(float px, float py, float pz, float rx, float ry, float rz, float tx, float ty, float tz, float sx, float sy, float sz);
+	int  Box(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz);
 
-	int  RightCuboid(float px, float py, float pz, float rx, float ry, float rz, float tx, float ty, float tz, float sx, float sy, float sz);
+	int  RightCuboid(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz);
+
+	int  Pyramid(TArray<FVector> ps, FVector q);
+
+	int  PyramidFrustum(TArray<FVector> ps, TArray<FVector> q);
+
+	int Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, float h);
+
+	 int CurrentParent();
+
+	 int SetCurrentParent(int newParent);
 
 	int CopyMesh(char* label, int actor, float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz, const char* mat);
+
+	int DeleteAll();
 }
 
 

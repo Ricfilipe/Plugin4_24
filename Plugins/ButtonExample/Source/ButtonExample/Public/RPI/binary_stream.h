@@ -130,6 +130,25 @@ public:
     }
   }
 
+  //Unreal
+
+  template<>
+  FVector Read(Type<FVector>) {
+      return FVector(Read<float>()*100, Read<float>()*100, Read<float>()*100);
+       
+  }
+
+  template<typename T>
+  TArray<T> Read(Type<TArray<T>>) {
+      int32_t len = Read<int32_t>();
+      TArray<T> r;
+      for (int32_t i = 0; i < len; i++) {
+          r.Add(Read<T>());
+      }
+
+      return r;
+  }
+
 private:
   boost::asio::ip::tcp::socket socket_;
   boost::system::error_code error_;

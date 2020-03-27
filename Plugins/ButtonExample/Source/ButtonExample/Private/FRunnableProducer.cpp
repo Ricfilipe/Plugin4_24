@@ -7,7 +7,7 @@
 
 FRunnableProducer::FRunnableProducer()
 {
-	rpi = new rpi_service::RpiService;
+	
 	Thread = FRunnableThread::Create(this, TEXT("FProducer"), 0, TPri_BelowNormal);
 }
 
@@ -64,11 +64,19 @@ const FRotator  FRotatorfromString(std::string x, std::string y, std::string z) 
 
 uint32 FRunnableProducer::Run()
 {
-	rpi->Run(11001);
+	while (true) {
+		rpi = new rpi_service::RpiService;
+		rpi->Run(11009);
+	}
 	
 	return 0;
 }
 
 void FRunnableProducer::Stop()
 {
+}
+
+void FRunnableProducer::Kill()
+{
+	Thread->Kill(false);
 }
