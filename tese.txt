@@ -2,8 +2,8 @@ Tese o que fazer:
 
 Familias para inserção de objectos:
 
-1- Começar com funções capazes de inserir cadeiras
-2- Adicionar capacidade de familias mantendo a mesma funcionalidade
+1- Começar com funções capazes de inserir cadeiras (v)
+2- Adicionar capacidade de familias mantendo a mesma funcionalidade (v)
 3- escolher objectos que representem
 4- Adicionar familias básicas
 

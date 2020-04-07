@@ -11,8 +11,8 @@ regular_pyramid_frustum()
 delete_all_shapes()
 current_layer(0)
 slab()
-global chair = block("/Game/StarterContent/Props/SM_Chair.SM_Chair")
 
+chair()
 
 
 get_material("/Game/StarterContent/Materials/M_Wood_Walnut.M_Wood_Walnut")

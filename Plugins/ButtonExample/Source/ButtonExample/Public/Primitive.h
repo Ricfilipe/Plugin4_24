@@ -122,6 +122,9 @@ namespace Primitive {
 	int Chair(FVector pos, float angle);
 
 	int DeleteAll();
+	
+	int InstantiateBIMElement(int family, FVector pos, float angle);
+
 }
 
 

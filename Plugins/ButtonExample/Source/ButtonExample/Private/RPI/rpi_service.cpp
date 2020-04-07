@@ -29,6 +29,7 @@ RpiService::RpiService() {
     ADD_FUNCTION(Primitive::BeamRectSection);
     ADD_FUNCTION(Primitive::BeamCircSection);
     ADD_FUNCTION(Primitive::Chair);
+    ADD_FUNCTION(Primitive::InstantiateBIMElement);
 	UE_LOG(LogThread, Log, TEXT("Created Thread"));
 }
 

@@ -593,6 +593,25 @@ int Primitive::DeleteAll()
 	return 0;
 }
 
+int Primitive::InstantiateBIMElement(int family, FVector pos, float angle)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Creating Mesh"));
+	Operation op = Operation();
+	op.op = TypeOP::PlaceMesh;
+	op.pos = pos;
+	op.mesh = listMesh[family];
+	op.rot = op.rot = FQuat::MakeFromEuler(FVector(0, 0, FMath::RadiansToDegrees(angle))).Rotator();
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse();
+	return listActor.Add(newActor);
+}
+
 
 int Primitive::CurrentParent() {
 	return parent;
