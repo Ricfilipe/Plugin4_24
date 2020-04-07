@@ -11,7 +11,7 @@
 #include "Containers/Queue.h"
 #include "Operations/Operation.h"
 #include <vector>
-
+#include <string>
 
 
 namespace Primitive {
@@ -64,14 +64,10 @@ namespace Primitive {
 
 	//BIM constructions
 		//BEAM
-	void createBeamRect(FVector objectPosition, FRotator objectRotation, FVector objectScale);
-	void createBeamCircle(FVector objectPosition, FRotator objectRotation, float height, float radius, int slides);
-	void createBeamCustom(FVector objectPosition, FRotator objectRotation, float height, TArray<FVector> vertices, int size);
+
 
 		//Slabs
-	void createSlabs(FVector objectPosition, FRotator objectRotation, float height, TArray<FVector> vertices, TArray<TArray<FVector>> holes, int size, int num_holes, int* size_holes);
 
-	void createPanels(FVector objectPosition, FRotator objectRotation, float height, TArray<FVector> vertices, FVector Normal, int size);
 
 	void cleanBrushes();
 
@@ -93,7 +89,7 @@ namespace Primitive {
 
 	int  Box(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz);
 
-	int  RightCuboid(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz);
+	int  RightCuboid(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz, float angle);
 
 	int  Pyramid(TArray<FVector> ps, FVector q);
 
@@ -105,7 +101,25 @@ namespace Primitive {
 
 	 int SetCurrentParent(int newParent);
 
+	 int LoadMaterial(std::string path);
+
+	 int LoadResource(std::string path);
+
+	 int CreateBlockInstance(int mesh, FVector position, FVector vx, FVector vy, float scale);
+
+	 int CurrentMaterial();
+
+	 int SetCurrentMaterial(int material);
+
+	 int Panel(TArray<FVector>  pts, FVector n, int material);
+
+	 int BeamRectSection(FVector position, FVector vx, FVector vy, float dx, float dy, float dz, float angle, int material);
+
+	 int BeamCircSection(FVector bot, float radius, FVector top, int material);
+
 	int CopyMesh(char* label, int actor, float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz, const char* mat);
+
+	int Chair(FVector pos, float angle);
 
 	int DeleteAll();
 }

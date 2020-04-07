@@ -13,7 +13,7 @@
 
 enum TypeOP
 {
-	Sphere,Cube,Cylinder,Cone,RightCuboid,Pyramid,PyramidFrustum,Slab,Delete,PlaceMesh
+	Sphere,Cube,Cylinder,Cone,RightCuboid,Pyramid,PyramidFrustum,Slab,Delete,PlaceMesh, LoadMat, LoadRes, Panel, Chair
 };
 
 class BUTTONEXAMPLE_API Operation 
@@ -32,7 +32,9 @@ public:
 	bool add = true;
 	TArray<TArray<FVector>> holes;
 	AActor* parent = NULL;
-	
+	FString path;
+	UMaterial* mat = NULL;
+	UStaticMesh* mesh = NULL;
 	Response execute();
 	
 private:
@@ -45,6 +47,11 @@ private:
 	AActor* CreatePyramid();
 	AActor* CreatePyramidFrustum();
 	AActor* CreateSlab();
+	AActor* CreatePanel();
+	AActor* CreateChair();
+	AActor* CreateEmptyActor();
 	void DeleteSelected();
 	AActor* PlaceStaticMesh(UStaticMesh* mesh);
+	UMaterial* LoadMaterial();
+	UStaticMesh* LoadResources();
 };

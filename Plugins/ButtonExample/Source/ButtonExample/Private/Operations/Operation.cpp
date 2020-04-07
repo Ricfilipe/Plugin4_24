@@ -22,6 +22,7 @@
 #include "CustomBrushes/VertixBuilder.h"
 #include "Engine/Polys.h"
 
+
  int count_Pyramid;
 
  UStaticMesh* lookForMesh(FString mesh) {
@@ -31,18 +32,18 @@
 
 Response Operation::execute()
 {
-	UStaticMesh* mesh = NULL;
+	UStaticMesh* loaded_mesh = NULL;
 	switch (op) {
 	case Sphere:
 		return Response(CreateSphere());
 		break;
 	case Cube:
-		mesh = lookForMesh(FString("/Game/Box" +
+		loaded_mesh = lookForMesh(FString("/Game/Box" +
 			FString::SanitizeFloat(scale.X) + ":" +
 			FString::SanitizeFloat(scale.Y) + ":" +
 			FString::SanitizeFloat(scale.Z)));
-		if (mesh) {
-			return Response(PlaceStaticMesh(mesh));
+		if (loaded_mesh){
+			return Response(PlaceStaticMesh(loaded_mesh));
 		}
 		return Response(CreateCube());
 		break;
@@ -50,21 +51,21 @@ Response Operation::execute()
 		return Response(CreateCone());
 		break;
 	case Cylinder:
-		mesh = lookForMesh(FString("/Game/Cylinder" +
+		loaded_mesh = lookForMesh(FString("/Game/Cylinder" +
 			FString::SanitizeFloat(height) + ":" +
 			FString::SanitizeFloat(radius) + ":" +
 			FString::SanitizeFloat(50)));
-		if (mesh) {
-			return Response(PlaceStaticMesh(mesh));
+		if (loaded_mesh) {
+			return Response(PlaceStaticMesh(loaded_mesh));
 		}
 		return Response(CreateCylinder());
 		break;
 	case RightCuboid:
-				mesh = lookForMesh(FString("/Game/RightCuboid" +
+		loaded_mesh = lookForMesh(FString("/Game/RightCuboid" +
 					FString::SanitizeFloat(scale.X) + ":" +
 					FString::SanitizeFloat(scale.Y) + ":" +
 					FString::SanitizeFloat(scale.Z)));
-		if (mesh) {
+		if (loaded_mesh){
 			return Response(PlaceStaticMesh(mesh));
 		}
 		return Response(CreateRightCuboid());
@@ -78,13 +79,28 @@ Response Operation::execute()
 	case Slab:
 		return Response(CreateSlab());
 		break;
+	case LoadMat:
+		return Response(LoadMaterial());
+		break;
+	case LoadRes:
+		return Response(LoadResources());
+		break;
+	case PlaceMesh:
+		return Response(PlaceStaticMesh(mesh));
+		break;
+	case Panel:
+		return Response(CreatePanel());
+		break;
 	case Delete:
 		DeleteSelected();
-		return Response(NULL);
+		return Response();
+		break;
+	case Chair:
+		return Response(CreateChair());
 		break;
 	}
 
-	return Response(NULL);
+	return Response();
 }
 
 
@@ -140,7 +156,7 @@ AActor* Operation::CreateCylinder() {
 	GEditor->RebuildAlteredBSP();
 	TArray<AActor*> bs;
 	bs.Add(NewBrush);
-	AActor*realActor = Primitive::ConvertToStaticMesh(bs, FString("/Game/Cylinder" +
+	AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(bs, FString("/Game/Cylinder" +
 		FString::SanitizeFloat(height) + ":" +
 		FString::SanitizeFloat(radius) + ":" +
 		FString::SanitizeFloat(builder->Sides)
@@ -149,6 +165,8 @@ AActor* Operation::CreateCylinder() {
 	realActor->SetActorRotation(rot);
 	if (parent != NULL)
 		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
+	if (mat != NULL)
+		realActor->GetStaticMeshComponent()->SetMaterial(0, mat);
 	return realActor;
 }
 
@@ -177,7 +195,7 @@ AActor* Operation::CreateCone()
 	GEditor->RebuildAlteredBSP();
 	TArray<AActor*> bs;
 	bs.Add(NewBrush);
-	AActor* realActor = Primitive::ConvertToStaticMesh(bs, FString("/Game/Cone" +
+	AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(bs, FString("/Game/Cone" +
 		FString::SanitizeFloat(height) + ":" +
 		FString::SanitizeFloat(radius) + ":" +
 		FString::SanitizeFloat(builder->Sides)
@@ -216,7 +234,7 @@ AActor* Operation::CreateCube()
 	GEditor->RebuildAlteredBSP();
 	TArray<AActor*> bs;
 	bs.Add(NewBrush);
-	AActor* realActor = Primitive::ConvertToStaticMesh(bs, FString("/Game/Box" +
+	AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(bs, FString("/Game/Box" +
 		FString::SanitizeFloat(scale.X) + ":" +
 		FString::SanitizeFloat(scale.Y) + ":" +
 		FString::SanitizeFloat(scale.Z)
@@ -225,6 +243,8 @@ AActor* Operation::CreateCube()
 	realActor->SetActorRotation(rot);
 	if (parent != NULL)
 		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
+	if (mat != NULL)
+		realActor->GetStaticMeshComponent()->SetMaterial(0, mat);
 	return realActor;
 }
 
@@ -245,7 +265,7 @@ AActor* Operation::CreateRightCuboid()
 	}
 	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
 	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
-
+	
 	UKhepriRightCuboid* builder = (UKhepriRightCuboid*)NewBrush->BrushBuilder;
 	builder->X = scale.X * rescale;
 	builder->Y = scale.Y * rescale;
@@ -255,15 +275,18 @@ AActor* Operation::CreateRightCuboid()
 	GEditor->RebuildAlteredBSP();
 	TArray<AActor*> bs;
 	bs.Add(NewBrush);
-	AActor* realActor = Primitive::ConvertToStaticMesh(bs, FString("/Game/RightCuboid" +
+	AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(bs, FString("/Game/RightCuboid" +
 		FString::SanitizeFloat(scale.X) + ":" +
 		FString::SanitizeFloat(scale.Y) + ":" +
 		FString::SanitizeFloat(scale.Z)
 	));
 
+
 	realActor->SetActorRotation(rot);
 	if (parent != NULL)
 		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
+	if (mat != NULL)
+		realActor->GetStaticMeshComponent()->SetMaterial(0, mat);
 	return realActor;
 }
 
@@ -294,11 +317,13 @@ AActor* Operation::CreatePyramid()
 	GEditor->RebuildAlteredBSP();
 	TArray<AActor*> bs;
 	bs.Add(NewBrush);
-	AActor* realActor = Primitive::ConvertToStaticMesh(bs, FString("/Game/Pyramid" +
+	AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(bs, FString("/Game/Pyramid" +
 		FString::SanitizeFloat(count_Pyramid++)
 	));
 
 	realActor->SetActorRotation(rot);
+	if (mat != NULL)
+		realActor->GetStaticMeshComponent()->SetMaterial(0, mat);
 	if (parent != NULL)
 		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
 	return realActor;
@@ -331,11 +356,13 @@ AActor* Operation::CreatePyramidFrustum()
 	GEditor->RebuildAlteredBSP();
 	TArray<AActor*> bs;
 	bs.Add(NewBrush);
-	AActor* realActor = Primitive::ConvertToStaticMesh(bs, FString("/Game/PyramidFrustum" +
+	AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(bs, FString("/Game/PyramidFrustum" +
 		FString::SanitizeFloat(count_Pyramid++)
 	));
 
 	realActor->SetActorRotation(rot);
+	if (mat != NULL)
+		realActor->GetStaticMeshComponent()->SetMaterial(0, mat);
 	if (parent != NULL)
 		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
 	return realActor;
@@ -372,12 +399,26 @@ AActor* spawnCustom(FVector objectPosition, FRotator objectRotation, float heigh
 
 	FPoly cap2 = NewBrush->Brush->Polys->Element.Pop();
 
+	FPoly cap3 = NewBrush->Brush->Polys->Element.Pop();
+
+	FPoly cap4 = NewBrush->Brush->Polys->Element.Pop();
+
 	cap1.Triangulate(NewBrush, triangles);
 	for (FPoly p : triangles) {
 		NewBrush->Brush->Polys->Element.Add(p);
 	}
 	triangles.Empty();
 	cap2.Triangulate(NewBrush, triangles);
+	for (FPoly p : triangles) {
+		NewBrush->Brush->Polys->Element.Add(p);
+	}
+
+	cap3.Triangulate(NewBrush, triangles);
+	for (FPoly p : triangles) {
+		NewBrush->Brush->Polys->Element.Add(p);
+	}
+	triangles.Empty();
+	cap4.Triangulate(NewBrush, triangles);
 	for (FPoly p : triangles) {
 		NewBrush->Brush->Polys->Element.Add(p);
 	}
@@ -401,12 +442,105 @@ AActor* Operation::CreateSlab()
 	}
 
 
-	AActor* realActor = Primitive::ConvertToStaticMesh(bs, FString("/Game/PyramidFrustum" +
+	AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(bs, FString("/Game/PyramidFrustum" +
+		FString::SanitizeFloat(count_Pyramid++)
+	));
+	if (mat != NULL)
+		realActor->GetStaticMeshComponent()->SetMaterial(0, mat);
+	if (parent != NULL)
+		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
+	return realActor;
+}
+
+AActor* Operation::CreatePanel()
+{
+	FTransform objectTrasform(FRotator(0, 0, 0), FVector(0,0,0), FVector(1, 1, 1));
+	UWorld* World = GEditor->GetEditorWorldContext().World();
+	ABrush* NewBrush = World->SpawnBrush();
+	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UVertixBuilder::StaticClass(), NAME_None, RF_Transactional);
+	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
+	NewBrush->Brush->Initialize(NewBrush, false);
+	NewBrush->SetActorRelativeTransform(objectTrasform);
+	NewBrush->BrushType = EBrushType::Brush_Add;
+	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
+	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
+	UVertixBuilder* builder = (UVertixBuilder*)NewBrush->BrushBuilder;
+	builder->DrawVertices = base;
+	builder->Size = base.Num();
+	builder->NormalVector = topPoint;
+	builder->Height = topPoint.Size();
+	builder->Build(World, NewBrush);
+
+	//Before Optimization Triangulate
+
+	TArray<FPoly> triangles;
+	FPoly cap1 = NewBrush->Brush->Polys->Element.Pop();
+
+	FPoly cap2 = NewBrush->Brush->Polys->Element.Pop();
+
+	cap1.Triangulate(NewBrush, triangles);
+	for (FPoly p : triangles) {
+		NewBrush->Brush->Polys->Element.Add(p);
+	}
+	triangles.Empty();
+	cap2.Triangulate(NewBrush, triangles);
+	for (FPoly p : triangles) {
+		NewBrush->Brush->Polys->Element.Add(p);
+	}
+
+	//Optimize 
+  //  FPoly::OptimizeIntoConvexPolys(NewBrush, NewBrush->Brush->Polys->Element);
+
+	GEditor->RebuildAlteredBSP();
+	TArray<AActor*> bs;
+	bs.Add(NewBrush);
+	AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(bs, FString("/Game/Panel" +
 		FString::SanitizeFloat(count_Pyramid++)
 	));
 
+	if (mat != NULL)
+		realActor->GetStaticMeshComponent()->SetMaterial(0, mat);
 	if (parent != NULL)
 		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
+	return realActor;
+}
+
+AActor* Operation::CreateChair()
+{
+	FVector objectScale(1, 1, 1);
+	FTransform objectTrasform(rot, pos, objectScale);
+	UWorld* currentWorld = GEditor->GetEditorWorldContext().World();
+	ULevel* currentLevel = currentWorld->GetCurrentLevel();
+	UClass* staticMeshClass = AStaticMeshActor::StaticClass();
+
+	AActor* newActorCreated = GEditor->AddActor(currentLevel, staticMeshClass, objectTrasform, true, RF_Public | RF_Standalone | RF_Transactional);
+
+	AStaticMeshActor* realActor = Cast<AStaticMeshActor>(newActorCreated);
+	realActor->SetActorLabel("StaticMesh");
+	realActor->GetStaticMeshComponent()->SetStaticMesh(LoadObject<UStaticMesh>(nullptr, TEXT("/Game/FreeFurniturePack/Meshes/SM_Old_Chair.SM_Old_Chair")));
+	realActor->SetActorScale3D(objectScale);
+	if (parent != NULL)
+		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
+
+
+
+
+
+	return realActor;
+}
+
+
+AActor* Operation::CreateEmptyActor()
+{
+	FVector objectScale(1, 1, 1);
+	FTransform objectTrasform(rot, pos, objectScale);
+	UWorld* currentWorld = GEditor->GetEditorWorldContext().World();
+	ULevel* currentLevel = currentWorld->GetCurrentLevel();
+	UClass* staticMeshClass = AActor::StaticClass();
+
+	AActor* realActor = GEditor->AddActor(currentLevel, staticMeshClass, objectTrasform, true, RF_Public | RF_Standalone | RF_Transactional);
+	realActor->SetActorLabel("StaticMesh");
+	realActor->SetActorScale3D(objectScale);
 	return realActor;
 }
 
@@ -442,14 +576,23 @@ AActor* Operation::PlaceStaticMesh(UStaticMesh* mesh)
 	realActor->SetActorScale3D(objectScale); 
 	if (parent != NULL)
 		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
-
-
-
+	if (mat != NULL)
+		realActor->GetStaticMeshComponent()->SetMaterial(0, mat);
 	
 	
 	
 
 	return realActor;
+}
+
+UMaterial* Operation::LoadMaterial()
+{
+	return LoadObject<UMaterial>(nullptr, *path);
+}
+
+UStaticMesh* Operation::LoadResources()
+{
+	return LoadObject<UStaticMesh>(nullptr, *path);
 }
 
 

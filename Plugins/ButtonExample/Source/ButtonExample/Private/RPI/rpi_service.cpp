@@ -20,6 +20,15 @@ RpiService::RpiService() {
     ADD_FUNCTION(Primitive::Slab);
     ADD_FUNCTION(Primitive::CurrentParent);
     ADD_FUNCTION(Primitive::SetCurrentParent);
+    ADD_FUNCTION(Primitive::LoadMaterial);
+    ADD_FUNCTION(Primitive::CurrentMaterial);
+    ADD_FUNCTION(Primitive::SetCurrentMaterial);
+    ADD_FUNCTION(Primitive::LoadResource);
+    ADD_FUNCTION(Primitive::CreateBlockInstance);
+    ADD_FUNCTION(Primitive::Panel);
+    ADD_FUNCTION(Primitive::BeamRectSection);
+    ADD_FUNCTION(Primitive::BeamCircSection);
+    ADD_FUNCTION(Primitive::Chair);
 	UE_LOG(LogThread, Log, TEXT("Created Thread"));
 }
 

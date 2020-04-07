@@ -78,6 +78,16 @@ bool UVertixBuilder::Build(UWorld * InWorld, ABrush * InBrush)
 			for (int j = Size*2 -1; j >0; j = j - 2)
 				Polyi(j);
 			PolyEnd();
+
+			PolyBegin(-1, FName(TEXT("Cap")));
+			for (int j = 0; j < Size * 2; j = j + 2)
+				Polyi(j);
+			PolyEnd();
+
+			PolyBegin(-1, FName(TEXT("Cap")));
+			for (int j = Size * 2 - 1; j > 0; j = j - 2)
+				Polyi(j);
+			PolyEnd();
 			TArray<FPoly> Polygons;
 			
 	}
@@ -93,8 +103,10 @@ void UVertixBuilder::BuildCustom(int32 Direction, TArray<FVector> vertices, floa
 			Vertex3f(v.X+ i * NormalVector.X*height / 2, v.Y+ i * NormalVector.Y*height / 2, v.Z + i*NormalVector.Z*height/2);
 		}
 	}
-	for (int32 i = 0; i < number; i++)
-		Poly4i(Direction,  i * 2,  i * 2 + 1, ((i * 2 + 3) % (2 * number)),  ((i * 2 + 2) % (2 * number)), FName(TEXT("Wall")));
+	for (int32 i = 0; i < number; i++) {
+		Poly4i(Direction, i * 2, i * 2 + 1, ((i * 2 + 3) % (2 * number)), ((i * 2 + 2) % (2 * number)), FName(TEXT("Wall")));
+		Poly4i(-Direction, i * 2, i * 2 + 1, ((i * 2 + 3) % (2 * number)), ((i * 2 + 2) % (2 * number)), FName(TEXT("Wall")));
+	}
 }
 
 

@@ -26,11 +26,15 @@ int cube = 0, cylinder = 0, sphere = 0, object = 0;
 int N_StaticMesh = 0;
 TArray< AActor* > brushes;
 int parent = -1;
+int current_material = -1;
 TQueue<Operation>* queue = new TQueue<Operation, EQueueMode::Spsc>();
 TQueue<Response>* responsequeue = new TQueue<Response, EQueueMode::Spsc>();
 //--------------------------------------------------------Placing Objects---------------------------------------------------------------------------//
 
 TArray<AActor*> listActor;
+TArray<UMaterial*> listMaterial;
+TArray<UStaticMesh*> listMesh;
+
 
 
 
@@ -89,6 +93,7 @@ bool  Primitive::checkQueue(float delta, int SpF) {
 
 		responsequeue->Enqueue(fo.execute());
 		num++;
+		FPlatformProcess::Sleep(0.001f);
 	}
 	return true;
 }
@@ -351,73 +356,7 @@ AActor* Primitive::ConvertToStaticMesh(const TArray<AActor*> bs)
 }
 
 
-//BIM Objects
-void Primitive::createBeamRect(FVector objectPosition, FRotator objectRotation, FVector objectScale)
-{
-	// Primitive::spawnCube(objectPosition, objectRotation, objectScale, true);
-}
-
-void Primitive::createBeamCircle(FVector objectPosition, FRotator objectRotation, float height, float radius, int slides)
-{
-	FTransform objectTrasform(objectRotation, objectPosition, FVector(1, 1, 1));
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	ABrush* NewBrush = World->SpawnBrush();
-	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UCylinderBuilder::StaticClass(), NAME_None, RF_Transactional);
-	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
-	NewBrush->Brush->Initialize(NewBrush, false);
-	NewBrush->SetActorRelativeTransform(objectTrasform);
-	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
-	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
-	UCylinderBuilder* builder = (UCylinderBuilder*)NewBrush->BrushBuilder;
-	builder->Z = 200 * height;
-	builder->OuterRadius = radius;
-	builder->Sides = slides;
-	GEditor->RebuildAlteredBSP();
-	TArray<AActor*> b;
-	b.Add(NewBrush);
-	ConvertToStaticMesh(b);
-}
-
-void Primitive::createBeamCustom(FVector objectPosition, FRotator objectRotation, float height, TArray<FVector> vertices, int size)
-{
-	spawnCustom(objectPosition, objectRotation, height, vertices, size, true);
-	ConvertToStaticMesh();
-}
-
-void Primitive::createSlabs(FVector objectPosition, FRotator objectRotation, float height, TArray<FVector> vertices, TArray<TArray<FVector>> holes, int size, int num_holes, int* size_holes)
-{
-	spawnCustom(objectPosition, objectRotation, height, vertices, size, true);
-
-	for (int i = 0; i < num_holes; i++) {
-		spawnCustom(objectPosition, objectRotation, height, holes[i], size_holes[i], false);
-	}
-	ConvertToStaticMesh();
-}
-
-void Primitive::createPanels(FVector objectPosition, FRotator objectRotation, float height, TArray<FVector> vertices, FVector Normal, int size)
-{
-	FTransform objectTrasform(objectRotation, objectPosition, FVector(1, 1, 1));
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	ABrush* NewBrush = World->SpawnBrush();
-	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UVertixBuilder::StaticClass(), NAME_None, RF_Transactional);
-	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
-	NewBrush->Brush->Initialize(NewBrush, false);
-	NewBrush->SetActorRelativeTransform(objectTrasform);
-	NewBrush->BrushType = EBrushType::Brush_Add;
-	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
-	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
-	UVertixBuilder* builder = (UVertixBuilder*)NewBrush->BrushBuilder;
-	builder->DrawVertices = vertices;
-	builder->Size = size;
-	builder->Height = height;
-	builder->NormalVector = Normal;
-	builder->Build(World, NewBrush);
-	GEditor->RebuildAlteredBSP();
-	TArray<AActor*> b;
-	b.Add(NewBrush);
-	ConvertToStaticMesh(b);
-
-}
+	
 
 void Primitive::cleanBrushes() {
 	brushes.Empty();
@@ -474,6 +413,9 @@ int Primitive::Cylinder(FVector bot, float radius, FVector top)
 	if (parent > -1) {
 		op.parent = listActor[parent];
 	}
+	if (current_material > -1) {
+		op.mat = listMaterial[current_material];
+	}
 	queue->Enqueue(op);
 	waitForRequest();
 	Response r;
@@ -493,6 +435,9 @@ int Primitive::Cone(float px, float py, float pz, float rx, float ry, float rz, 
 	op.height = height;
 	if (parent > -1) {
 		op.parent = listActor[parent];
+	}
+	if (current_material > -1) {
+		op.mat = listMaterial[current_material];
 	}
 	queue->Enqueue(op);
 	waitForRequest();
@@ -517,6 +462,9 @@ int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, floa
 		if (parent > -1) {
 			op.parent = listActor[parent];
 		}
+		if (current_material > -1) {
+			op.mat = listMaterial[current_material];
+		}
 		queue->Enqueue(op);
 		waitForRequest();
 		Response r;
@@ -528,16 +476,19 @@ int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, floa
 
 
 //TODO Adicionar campo angle
-int Primitive::RightCuboid(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz)
+int Primitive::RightCuboid(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz, float angle)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a RightCuboid"));
 	RightCuboidCreation op = RightCuboidCreation();
 	op.op = TypeOP::RightCuboid;
 	op.scale = FVector(sx, sy, sz);
 	op.pos = pos;
-	op.rot = MyLookRotation(vx, vy);
+	op.rot = (MyLookRotation(vx, vy).Quaternion() * FQuat::MakeFromEuler(FVector(0,0,FMath::RadiansToDegrees( angle)))).Rotator();
 	if (parent > -1) {
 		op.parent = listActor[parent];
+	}	
+	if (current_material > -1) {
+		op.mat = listMaterial[current_material];
 	}
 	queue->Enqueue(op);
 	waitForRequest();
@@ -556,6 +507,9 @@ int Primitive::Pyramid(TArray<FVector> ps, FVector q)
 	if (parent > -1) {
 		op.parent = listActor[parent];
 	}
+	if (current_material > -1) {
+		op.mat = listMaterial[current_material];
+	}
 	queue->Enqueue(op);
 	waitForRequest();
 	Response r;
@@ -573,6 +527,9 @@ int Primitive::PyramidFrustum(TArray<FVector> ps, TArray<FVector> q)
 	if (parent > -1) {
 		op.parent = listActor[parent];
 	}
+	if (current_material > -1) {
+		op.mat = listMaterial[current_material];
+	}
 	queue->Enqueue(op);
 	waitForRequest();
 	Response r;
@@ -589,6 +546,27 @@ int Primitive::Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, floa
 	op.height = h*100;
 	op.base = contour;
 	op.holes = holes;
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
+	if (current_material > -1) {
+		op.mat =listMaterial[current_material];
+	}
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse();
+	return listActor.Add(newActor);
+}
+
+int Primitive::Chair(FVector pos, float angle)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Creating a Chair"));
+	Operation op = Operation();
+	op.op = TypeOP::Chair;	
+	op.pos = pos;
+	op.rot = op.rot = FQuat::MakeFromEuler(FVector(0, 0, FMath::RadiansToDegrees(angle))).Rotator();
 	if (parent > -1) {
 		op.parent = listActor[parent];
 	}
@@ -626,6 +604,134 @@ int Primitive::SetCurrentParent(int newParent) {
 	}
 	return parent;
 }
+
+int Primitive::LoadMaterial(std::string path)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Carregar Material"));
+	Operation op = Operation();
+	op.op = TypeOP::LoadMat;
+	op.path = FString(path.c_str());
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	UMaterial* mat = r.getMat();
+	current_material = listMaterial.Add(mat);
+	return current_material;
+}
+
+int Primitive::LoadResource(std::string path)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Carregar Mesh"));
+	Operation op = Operation();
+	op.op = TypeOP::LoadRes;
+	op.path = FString(path.c_str());
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	return listMesh.Add(r.getMesh());
+}
+
+int Primitive::CreateBlockInstance(int mesh, FVector pos, FVector vx, FVector vy, float scale)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Creating Mesh"));
+	Operation op = Operation();
+	op.op = TypeOP::PlaceMesh;
+	op.height = scale;
+	op.pos = pos;
+	op.mesh = listMesh[mesh]; 
+	op.rot = MyLookRotation(vx, vy);
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse();
+	return listActor.Add(newActor);
+}
+
+int Primitive::CurrentMaterial()
+{
+
+	return current_material;
+}
+
+int Primitive::SetCurrentMaterial(int material)
+{
+	current_material = material;
+	return 0;
+}
+
+int Primitive::Panel(TArray<FVector> pts, FVector n, int material)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Creating Panel"));
+	Operation op = Operation();
+	op.op = TypeOP::Panel;
+	op.topPoint = n;
+	op.base = pts;
+
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
+	if (material > -1) {
+		op.mat = listMaterial[material];
+	}
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse();
+	return listActor.Add(newActor);
+}
+
+int Primitive::BeamRectSection(FVector pos, FVector vx, FVector vy, float dx, float dy, float dz, float angle, int material)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Creating a RightCuboid"));
+	RightCuboidCreation op = RightCuboidCreation();
+	op.op = TypeOP::RightCuboid;
+	op.scale = FVector(dx, dy, dz);
+	op.pos = pos;
+	op.rot = MyLookRotation(vx, vy);
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
+	if (material > -1) {
+		op.mat = listMaterial[material];
+	}
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse();
+	return listActor.Add(newActor);
+}
+
+int Primitive::BeamCircSection(FVector bot, float radius, FVector top, int material)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Creating a Cylinder"));
+	Operation op = Operation();
+	op.op = TypeOP::Cylinder;
+	op.pos = bot;
+	op.radius = radius;
+	op.height = FVector::Dist(top, bot);
+	op.rot = FQuat::FindBetween(FVector(0, 0, 1), top - bot).Rotator();
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
+	if (material > -1) {
+		op.mat = listMaterial[material];
+	}
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse();
+	return listActor.Add(newActor);
+}
+
 
 /*
 int Primitive::CopyMesh(char* label, int actor, float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz, const char* mat)

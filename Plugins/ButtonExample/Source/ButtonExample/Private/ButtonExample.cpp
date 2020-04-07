@@ -246,19 +246,7 @@ void  FButtonExampleModule::OnZChanged(float z) {
  FReply FButtonExampleModule::ButtonReply3() {
 
 	 TArray<FVector> vert;
-	 vert.Add(FVector(50, 50, 0));
-	 vert.Add(FVector(50, 30, 0));
-	 vert.Add(FVector(20, 30, 0));
-	 vert.Add(FVector(20, -30, 0));
-	 vert.Add(FVector(50, -30, 0));
-	 vert.Add(FVector(50, -50, 0));
-	 vert.Add(FVector(-50, -50, 0));
-	 vert.Add(FVector(-50, -30, 0));
-	 vert.Add(FVector(-20, -30, 0));
-	 vert.Add(FVector(-20, 30, 0));
-	 vert.Add(FVector(-50, 30, 0));
-	 vert.Add(FVector(-50, 50, 0));
-	 Primitive::createBeamCustom(FVector(0,0,0), FRotator(0,0,0), 200.0f,vert,12);
+
 	 return FReply::Handled();
  }
 

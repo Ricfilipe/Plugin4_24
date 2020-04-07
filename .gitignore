@@ -72,3 +72,14 @@ Plugins/*/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+*.uasset
+Content/StarterContent/Maps/Minimal_Default.umap
+Content/MS_PolishedV2/Megascans_PolishedV2_Source.zip
+Content/MS_PolishedV2/Maps/Overview.umap
+Content/MS_ModernStuc/Megascans_ModernStuc_Source.zip
+Content/MS_ModernStuc/Maps/Overview.umap
+Content/MS_MarbleTile/Megascans_MarbleTile_Source.zip
+Content/MS_MarbleTile/Maps/Overview.umap
+Content/MS_ConcreteV2/Megascans_ConcreteV2_Source.zip
+Content/MS_ConcreteV2/Maps/Overview.umap
+Content/FreeFurniturePack/Maps/Overview.umap
