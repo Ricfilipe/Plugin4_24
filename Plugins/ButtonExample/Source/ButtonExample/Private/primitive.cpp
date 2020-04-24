@@ -37,76 +37,25 @@ TArray<UStaticMesh*> listMesh;
 
 
 
+
 FRotator MyLookRotation(FVector lookAt, FVector upDirection)
 {
-	FVector forward = lookAt;
-	FVector up = upDirection.GetSafeNormal();
 
+	lookAt.Normalize();
+	upDirection.Normalize();
 
-	///////////////////////
-
-
-
-
-
-	FVector vector = forward.GetSafeNormal();
-	FVector vector2 = FVector::CrossProduct(up, vector);
-	FVector vector3 = FVector::CrossProduct(vector, vector2);
-	float m00 = vector2.X;
-	float m01 = vector2.Y;
-	float m02 = vector2.Z;
-	float m10 = vector3.X;
-	float m11 = vector3.Y;
-	float m12 = vector3.Z;
-	float m20 = vector.X;
-	float m21 = vector.Y;
-	float m22 = vector.Z;
-
-
-	float num8 = (m00 + m11) + m22;
-	FQuat quaternion = FQuat();
-	if (num8 > 0.0f)
-	{
-		float num = (float)FMath::Sqrt(num8 + 1.0f);
-		quaternion.W = num * 0.5f;
-		num = 0.5f / num;
-		quaternion.X = (m12 - m21) * num;
-		quaternion.Y = (m20 - m02) * num;
-		quaternion.Z = (m01 - m10) * num;
-		return FRotator(quaternion);
-	}
-	if ((m00 >= m11) && (m00 >= m22))
-	{
-		float num7 = (float)FMath::Sqrt(((1.0f + m00) - m11) - m22);
-		float num4 = 0.5f / num7;
-		quaternion.X = 0.5f * num7;
-		quaternion.Y = (m01 + m10) * num4;
-		quaternion.Z = (m02 + m20) * num4;
-		quaternion.W = (m12 - m21) * num4;
-		return FRotator(quaternion);
-	}
-	if (m11 > m22)
-	{
-		float num6 = (float)FMath::Sqrt(((1.0f + m11) - m00) - m22);
-		float num3 = 0.5f / num6;
-		quaternion.X = (m10 + m01) * num3;
-		quaternion.Y = 0.5f * num6;
-		quaternion.Z = (m21 + m12) * num3;
-		quaternion.W = (m20 - m02) * num3;
-		return FRotator(quaternion);
-	}
-	float num5 = (float)FMath::Sqrt(((1.0f + m22) - m00) - m11);
-	float num2 = 0.5f / num5;
-	quaternion.X = (m20 + m02) * num2;
-	quaternion.Y = (m21 + m12) * num2;
-	quaternion.Z = 0.5f * num5;
-	quaternion.W = (m01 - m10) * num2;
-
-
-	return FRotator(quaternion);
-
+	if (lookAt == FVector::ZeroVector) {
+		return FRotator(0, 0, 0);
 }
+	if (upDirection != lookAt) {
+		
+		FVector v = lookAt + upDirection * -FVector::DotProduct(upDirection, lookAt);
+		FQuat q = FQuat::FindBetween(FVector::ForwardVector, v);
+		return (FQuat::FindBetween(v, lookAt) * q).Rotator();
+	}
 
+	return FQuat::FindBetween(FVector::ForwardVector, lookAt).Rotator();
+}
 
 void waitForRequest() {
 	while (responsequeue->IsEmpty()) {
@@ -526,7 +475,7 @@ int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, floa
 }
 
 
-
+//TODO Adicionar campo angle
 int Primitive::RightCuboid(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz, float angle)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a RightCuboid"));
@@ -534,7 +483,7 @@ int Primitive::RightCuboid(FVector pos, FVector vx, FVector vy, float sx, float 
 	op.op = TypeOP::RightCuboid;
 	op.scale = FVector(sx, sy, sz);
 	op.pos = pos;
-	op.rot = ( MyLookRotation(vx, vy).Quaternion() * FQuat::MakeFromEuler(FVector(0, 0, FMath::RadiansToDegrees(angle)))).Rotator();
+	op.rot = (MyLookRotation(vx, vy).Quaternion() * FQuat::MakeFromEuler(FVector(0,0,FMath::RadiansToDegrees( angle)))).Rotator();
 	if (parent > -1) {
 		op.parent = listActor[parent];
 	}	
@@ -678,9 +627,6 @@ int Primitive::SetCurrentParent(int newParent) {
 int Primitive::LoadMaterial(std::string path)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Carregar Material"));
-	if (path == "") {
-		return -1;
-	}
 	Operation op = Operation();
 	op.op = TypeOP::LoadMat;
 	op.path = FString(path.c_str());
@@ -689,9 +635,6 @@ int Primitive::LoadMaterial(std::string path)
 	Response r;
 	responsequeue->Dequeue(r);
 	UMaterial* mat = r.getMat();
-	if (mat == NULL) {
-		return -1;
-	}
 	current_material = listMaterial.Add(mat);
 	return current_material;
 }
@@ -765,12 +708,12 @@ int Primitive::Panel(TArray<FVector> pts, FVector n, int material)
 
 int Primitive::BeamRectSection(FVector pos, FVector vx, FVector vy, float dx, float dy, float dz, float angle, int material)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Creating a Beam Rect"));
+	UE_LOG(LogTemp, Warning, TEXT("Creating a RightCuboid"));
 	RightCuboidCreation op = RightCuboidCreation();
 	op.op = TypeOP::RightCuboid;
 	op.scale = FVector(dx, dy, dz);
 	op.pos = pos;
-	op.rot = (MyLookRotation(vx, vy).Quaternion() * FQuat::MakeFromEuler(FVector(0, 0, FMath::RadiansToDegrees(angle)))).Rotator();
+	op.rot = MyLookRotation(vx, vy);
 	if (parent > -1) {
 		op.parent = listActor[parent];
 	}

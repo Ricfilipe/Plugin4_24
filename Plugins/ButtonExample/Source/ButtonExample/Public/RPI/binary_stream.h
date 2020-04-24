@@ -70,9 +70,9 @@ public:
 
   template<>
   std::string Read(Type<std::string>) {
-      int32_t len = (int32_t)Read<char>();
+    short len = (short)Read<char>();
     std::vector<char> r;
-    for (int32_t i = 0; i < len; i++) {
+    for (short i = 0; i < len; i++) {
       r.push_back(Read<char>());
     }
     std::string str(r.begin(), r.end());
@@ -134,7 +134,7 @@ public:
 
   template<>
   FVector Read(Type<FVector>) {
-      return FVector(Read<float>(), Read<float>(), Read<float>());
+      return FVector(Read<float>()*100, Read<float>()*100, Read<float>()*100);
        
   }
 
