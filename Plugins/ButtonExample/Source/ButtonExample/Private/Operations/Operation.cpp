@@ -209,7 +209,7 @@ AActor* Operation::CreateCone()
 
 AActor* Operation::CreateCube()
 {
-	FTransform objectTrasform(rot, pos, FVector(1, 1, 1));
+	FTransform objectTrasform(FRotator(0, 0, 0), pos, FVector(1, 1, 1));
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 	ABrush* NewBrush = World->SpawnBrush();
 	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UKhepriBox::StaticClass(), NAME_None, RF_Transactional);
@@ -241,6 +241,7 @@ AActor* Operation::CreateCube()
 	));
 
 	realActor->SetActorRotation(rot);
+	realActor->SetActorLocation(pos);
 	if (parent != NULL)
 		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
 	if (mat != NULL)
@@ -250,7 +251,7 @@ AActor* Operation::CreateCube()
 
 AActor* Operation::CreateRightCuboid()
 {
-	FTransform objectTrasform(rot, pos, FVector(1, 1, 1));
+	FTransform objectTrasform(FRotator(0,0,0), pos, FVector(1, 1, 1));
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 	ABrush* NewBrush = World->SpawnBrush();
 	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UKhepriRightCuboid::StaticClass(), NAME_None, RF_Transactional);
@@ -283,6 +284,7 @@ AActor* Operation::CreateRightCuboid()
 
 
 	realActor->SetActorRotation(rot);
+	realActor->SetActorLocation(pos);
 	if (parent != NULL)
 		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
 	if (mat != NULL)
@@ -292,7 +294,7 @@ AActor* Operation::CreateRightCuboid()
 
 AActor* Operation::CreatePyramid()
 {
-	FTransform objectTrasform(rot, pos, FVector(1, 1, 1));
+	FTransform objectTrasform(FRotator(0, 0, 0), pos, FVector(1, 1, 1));
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 	ABrush* NewBrush = World->SpawnBrush();
 	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UKhepriPyramid::StaticClass(), NAME_None, RF_Transactional);
@@ -331,7 +333,7 @@ AActor* Operation::CreatePyramid()
 
 AActor* Operation::CreatePyramidFrustum()
 {
-	FTransform objectTrasform(rot, pos, FVector(1, 1, 1));
+	FTransform objectTrasform(FRotator(0, 0, 0), pos, FVector(1, 1, 1));
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 	ABrush* NewBrush = World->SpawnBrush();
 	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UKhepriPyramidFrustum::StaticClass(), NAME_None, RF_Transactional);
@@ -399,9 +401,6 @@ AActor* spawnCustom(FVector objectPosition, FRotator objectRotation, float heigh
 
 	FPoly cap2 = NewBrush->Brush->Polys->Element.Pop();
 
-	FPoly cap3 = NewBrush->Brush->Polys->Element.Pop();
-
-	FPoly cap4 = NewBrush->Brush->Polys->Element.Pop();
 
 	cap1.Triangulate(NewBrush, triangles);
 	for (FPoly p : triangles) {
@@ -413,15 +412,8 @@ AActor* spawnCustom(FVector objectPosition, FRotator objectRotation, float heigh
 		NewBrush->Brush->Polys->Element.Add(p);
 	}
 
-	cap3.Triangulate(NewBrush, triangles);
-	for (FPoly p : triangles) {
-		NewBrush->Brush->Polys->Element.Add(p);
-	}
-	triangles.Empty();
-	cap4.Triangulate(NewBrush, triangles);
-	for (FPoly p : triangles) {
-		NewBrush->Brush->Polys->Element.Add(p);
-	}
+
+	
 
 	//Optimize 
   //  FPoly::OptimizeIntoConvexPolys(NewBrush, NewBrush->Brush->Polys->Element);
@@ -441,8 +433,7 @@ AActor* Operation::CreateSlab()
 		bs.Add(spawnCustom(FVector(0, 0, 0), FRotator(0, 0, 0), height, holes[i], holes[i].Num(), false));
 	}
 
-
-	AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(bs, FString("/Game/PyramidFrustum" +
+		AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(bs, FString("/Game/PyramidFrustum" +
 		FString::SanitizeFloat(count_Pyramid++)
 	));
 	if (mat != NULL)
@@ -574,6 +565,8 @@ AActor* Operation::PlaceStaticMesh(UStaticMesh* mesh)
 	realActor->SetActorLabel("StaticMesh");
 	realActor->GetStaticMeshComponent()->SetStaticMesh(mesh);
 	realActor->SetActorScale3D(objectScale); 
+	realActor->SetActorRotation(rot);
+	realActor->SetActorLocation(pos);
 	if (parent != NULL)
 		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
 	if (mat != NULL)
