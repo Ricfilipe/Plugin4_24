@@ -249,13 +249,6 @@ void  FButtonExampleModule::OnZChanged(float z) {
 
  FReply FButtonExampleModule::ButtonReply3() {
 
-	 UWorld* currentWorld = GEditor->GetEditorWorldContext().World();
-	 TArray<AActor*> toRemove;
-
-	 AStaticMeshActor* ac = Cast<AStaticMeshActor>(currentWorld->PersistentLevel->Actors[30]);
-
-	 FPositionVertexBuffer VertexBuffer = ac->GetStaticMeshComponent()->GetStaticMesh()->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer;
-	 UE_LOG(LogThread, Warning, TEXT("%d"), VertexBuffer.GetNumVertices());
 
 	 return FReply::Handled();
  }
