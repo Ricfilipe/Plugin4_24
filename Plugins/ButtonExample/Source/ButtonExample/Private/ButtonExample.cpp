@@ -31,7 +31,11 @@
 #include "CustomBrushes/VertixBuilder.h"
 #include "Operations/Operation.h"
 #include "rpi_service.h"
-
+#include "Engine/World.h"
+#include "LevelEditor.h"
+#include "Editor.h"
+#include "GameFramework/Actor.h"
+#include "EditorModeManager.h"
 
 
 
@@ -245,7 +249,13 @@ void  FButtonExampleModule::OnZChanged(float z) {
 
  FReply FButtonExampleModule::ButtonReply3() {
 
-	 TArray<FVector> vert;
+	 UWorld* currentWorld = GEditor->GetEditorWorldContext().World();
+	 TArray<AActor*> toRemove;
+
+	 AStaticMeshActor* ac = Cast<AStaticMeshActor>(currentWorld->PersistentLevel->Actors[30]);
+
+	 FPositionVertexBuffer VertexBuffer = ac->GetStaticMeshComponent()->GetStaticMesh()->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer;
+	 UE_LOG(LogThread, Warning, TEXT("%d"), VertexBuffer.GetNumVertices());
 
 	 return FReply::Handled();
  }

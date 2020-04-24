@@ -60,31 +60,39 @@ void UVertixBuilder::PostEditChangeProperty(FPropertyChangedEvent & PropertyChan
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
+
+FVector PlaneNormal(TArray<FVector> pts) {
+	FVector pt = pts[0];
+	FVector sum = FVector::ZeroVector;
+	for (int i = 1; i < pts.Num() - 1; i++) {
+		if (pts[i] == pt || pts[i + 1] == pt) continue;
+		sum += FVector::CrossProduct(pts[i] - pt, pts[i + 1] - pt);
+	}
+	sum.Normalize();
+	return sum;
+}
+
 bool UVertixBuilder::Build(UWorld * InWorld, ABrush * InBrush)
 {
-	
 
+	
 	BeginBrush(false, GroupName);
 	if (Size != 0) {
-		BuildCustom(+1, DrawVertices, Height, Size);
+		int dir = -1;
+		FVector dv = PlaneNormal(DrawVertices);
+		if (dv.Z < 0) {
+			dir = 1;
+		}
+		BuildCustom(dir, DrawVertices, Height, Size);
 
 	
-			PolyBegin(1, FName(TEXT("Cap")));
-			for (int j = 0; j < Size*2; j = j + 2)
-				Polyi(j);
-			PolyEnd();
 
-			PolyBegin(1, FName(TEXT("Cap")));
-			for (int j = Size*2 -1; j >0; j = j - 2)
-				Polyi(j);
-			PolyEnd();
-
-			PolyBegin(-1, FName(TEXT("Cap")));
+			PolyBegin(dir, FName(TEXT("Cap")));
 			for (int j = 0; j < Size * 2; j = j + 2)
 				Polyi(j);
 			PolyEnd();
 
-			PolyBegin(-1, FName(TEXT("Cap")));
+			PolyBegin(dir, FName(TEXT("Cap")));
 			for (int j = Size * 2 - 1; j > 0; j = j - 2)
 				Polyi(j);
 			PolyEnd();
@@ -95,17 +103,20 @@ bool UVertixBuilder::Build(UWorld * InWorld, ABrush * InBrush)
 
 }
 
+
+
+
 void UVertixBuilder::BuildCustom(int32 Direction, TArray<FVector> vertices, float height, int number)
 {
 	for (int j = 0; j < number; j++) {
 		FVector v = vertices[j];
-		for (int i = -1; i < 2; i = i + 2) {
-			Vertex3f(v.X+ i * NormalVector.X*height / 2, v.Y+ i * NormalVector.Y*height / 2, v.Z + i*NormalVector.Z*height/2);
+		for (int i = 0; i < 2; i = i + 1) {
+			Vertex3f(v.X+ i * NormalVector.X*height, v.Y+ i * NormalVector.Y*height, v.Z + i*NormalVector.Z*height);
 		}
 	}
 	for (int32 i = 0; i < number; i++) {
+		
 		Poly4i(Direction, i * 2, i * 2 + 1, ((i * 2 + 3) % (2 * number)), ((i * 2 + 2) % (2 * number)), FName(TEXT("Wall")));
-		Poly4i(-Direction, i * 2, i * 2 + 1, ((i * 2 + 3) % (2 * number)), ((i * 2 + 2) % (2 * number)), FName(TEXT("Wall")));
 	}
 }
 
@@ -539,8 +550,8 @@ UKhepriBox::UKhepriBox(const FObjectInitializer& ObjectInitializer)
 void UKhepriBox::BuildCube(int32 Direction, float dx, float dy, float dz) {
 	int32 n = GetVertexCount();
 
-	for (int32 i = -1; i < 1; i += 1)
-		for (int32 j = -1; j < 1; j += 1)
+	for (int32 i = 0; i < 2; i += 1)
+		for (int32 j = 0; j < 2; j += 1)
 			for (int32 k = 0; k < 2; k += 1)
 				Vertex3f(i * dx , j * dy , k * dz);
 

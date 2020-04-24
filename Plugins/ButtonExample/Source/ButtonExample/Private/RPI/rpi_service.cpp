@@ -52,17 +52,32 @@ void rpi_service::RpiService::Run(unsigned short port) {
       int id = socket_stream.Read<int>();
       if (socket_stream.GetReadLength() == 0) break;
       if (id != 0) {
+
+       
         int method_index = id - 1;
         available_handlers_[method_index]->SetArgs(socket_stream);
+
+
+        int max_bytes = socket_stream.GetSocket().available();
+        std::string s;
+        for (int i = 0; i < max_bytes; i++) {
+            s.push_back(socket_stream.Read<char>());
+        }
+        FString f = FString(s.c_str());
+        UE_LOG(LogThread, Warning, TEXT("%s"), *f);
+
+
         available_handlers_[method_index]->Invoke();
 
         available_handlers_[method_index]->WriteReturn(socket_stream);
+        
       } else {
         std::string operation_str = socket_stream.Read<std::string>();
         available_handlers_.push_back(std::move(handlers_map_.at(operation_str)));
         int return_value = (int)available_handlers_.size();
         socket_stream.Write(return_value);
       }
+      
     }
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;
