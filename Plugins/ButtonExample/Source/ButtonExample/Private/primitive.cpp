@@ -20,6 +20,8 @@
 #include "Builders/TetrahedronBuilder.h"
 #include "Operations/BoxCreation.h"
 #include "Operations/RightCuboidCreation.h"
+#include "CustomBrushes/KhepriBox.h"
+#include "CustomBrushes/KhepriCylinder.h"
 
 
 int cube = 0, cylinder = 0, sphere = 0, object = 0;
@@ -35,7 +37,43 @@ TArray<AActor*> listActor;
 TArray<UMaterial*> listMaterial;
 TArray<UStaticMesh*> listMesh;
 
+UStaticMesh* FindMesh(FString mesh) {
 
+	mesh = mesh.Replace(TEXT("."), TEXT("a"));
+	mesh = mesh.Replace(TEXT(":"), TEXT("b"));
+
+	return LoadObject<UStaticMesh>(nullptr, *(mesh));
+
+}
+
+
+AActor* PlaceStaticMesh(UStaticMesh* mesh,FRotator rot, FVector pos)
+{
+	FVector objectScale(1, 1, 1);
+	FTransform objectTrasform(rot, pos, objectScale);
+	UWorld* currentWorld = GEditor->GetEditorWorldContext().World();
+	ULevel* currentLevel = currentWorld->GetCurrentLevel();
+	UClass* staticMeshClass = AStaticMeshActor::StaticClass();
+
+	AActor* newActorCreated = GEditor->AddActor(currentLevel, staticMeshClass, objectTrasform, true, RF_Public | RF_Standalone | RF_Transactional);
+
+	AStaticMeshActor* realActor = Cast<AStaticMeshActor>(newActorCreated);
+	realActor->SetActorLabel("StaticMesh");
+	realActor->GetStaticMeshComponent()->SetStaticMesh(mesh);
+	realActor->SetActorScale3D(objectScale);
+	realActor->SetActorRotation(rot);
+	realActor->SetActorLocation(pos);
+	if (parent > -1)
+		realActor->AttachToActor(listActor[parent], FAttachmentTransformRules::KeepRelativeTransform);
+	if (current_material > -1)
+		realActor->GetStaticMeshComponent()->SetMaterial(0, listMaterial[current_material]);
+
+
+
+
+
+	return realActor;
+}
 
 FRotator MyLookRotation(FVector lookAt, FVector upDirection)
 {
@@ -110,7 +148,7 @@ FRotator MyLookRotation(FVector lookAt, FVector upDirection)
 
 void waitForRequest() {
 	while (responsequeue->IsEmpty()) {
-		
+		FPlatformProcess::Sleep(0.001f);
 	}
 }
 
@@ -138,11 +176,13 @@ void execute(Operation op) {
 bool  Primitive::checkQueue(float delta, int SpF) {
 	int num = 0;
 	Operation fo;
-	while (!(queue->IsEmpty()) && num < 100) {
-
+	while (!(queue->IsEmpty())) {
+		double start = FPlatformTime::Seconds();
 		queue->Dequeue(fo);
 
 		responsequeue->Enqueue(fo.execute());
+		double end = FPlatformTime::Seconds();
+		UE_LOG(LogTemp, Warning, TEXT("Operation completed in %f seconds."), end - start);
 		num++;
 		FPlatformProcess::Sleep(0.001f);
 	}
@@ -455,24 +495,58 @@ int Primitive::Cylinder(FVector bot, float radius, FVector top)
 {
 	
 	UE_LOG(LogTemp, Warning, TEXT("Creating a Cylinder"));
-	Operation op = Operation();
-	op.op = TypeOP::Cylinder;
-	op.pos = bot;
-	op.radius = radius;
-	op.height = FVector::Dist(top,bot);
-	op.rot = FQuat::FindBetween(FVector(0,0,1),top-bot).Rotator();
-	if (parent > -1) {
-		op.parent = listActor[parent];
+
+	double start = FPlatformTime::Seconds();
+
+	UStaticMesh* loaded_mesh = FindMesh(FString("/Game/Cylinder" +
+		FString::SanitizeFloat(FVector::Distance(top,bot)) + ":" +
+		FString::SanitizeFloat(radius) + ":" +
+		FString::SanitizeFloat(50)
+	));
+	if (loaded_mesh) {
+		AActor* realActor = PlaceStaticMesh(loaded_mesh, FQuat::FindBetween(FVector(0, 0, 1), top - bot).Rotator(), bot);
+		double end = FPlatformTime::Seconds();
+		UE_LOG(LogTemp, Warning, TEXT("Created with search in %f seconds."), end - start);
+		return listActor.Add(realActor);
 	}
-	if (current_material > -1) {
-		op.mat = listMaterial[current_material];
+
+	FTransform objectTrasform(FRotator(0,0,0), bot, FVector(1, 1, 1));
+	UWorld* World = GEditor->GetEditorWorldContext().World();
+	ABrush* NewBrush = World->SpawnBrush();
+	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UKhepriCylinder::StaticClass(), NAME_None, RF_Transactional);
+	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
+	NewBrush->Brush->Initialize(NewBrush, false);
+	NewBrush->SetActorRelativeTransform(objectTrasform);
+	if (true) {
+		NewBrush->BrushType = EBrushType::Brush_Add;
 	}
-	queue->Enqueue(op);
-	waitForRequest();
-	Response r;
-	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
-	return listActor.Add(newActor);
+	else {
+		NewBrush->BrushType = EBrushType::Brush_Subtract;
+	}
+	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
+	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
+	UKhepriCylinder* builder = (UKhepriCylinder*)NewBrush->BrushBuilder;
+	builder->Height = FVector::Distance(top, bot);
+	builder->Radius = radius * rescale;
+	builder->Sides = 50;
+	builder->Build(World, NewBrush);
+	GEditor->RebuildAlteredBSP();
+	TArray<AActor*> bs;
+	bs.Add(NewBrush);
+	AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(bs, FString("/Game/Cylinder" +
+		FString::SanitizeFloat(FVector::Distance(top, bot)) + ":" +
+		FString::SanitizeFloat(radius) + ":" +
+		FString::SanitizeFloat(builder->Sides)
+	));
+
+	realActor->SetActorRotation(FQuat::FindBetween(FVector(0, 0, 1), top - bot).Rotator());
+	if (parent > -1)
+		realActor->AttachToActor(listActor[parent], FAttachmentTransformRules::KeepRelativeTransform);
+	if (current_material > -1)
+		realActor->GetStaticMeshComponent()->SetMaterial(0, listMaterial[current_material]);
+	double end = FPlatformTime::Seconds();
+	UE_LOG(LogTemp, Warning, TEXT("Created in %f seconds."), end - start);
+	return listActor.Add(realActor);
 }
 
 int Primitive::Cone(float px, float py, float pz, float rx, float ry, float rz, float height, float radius)
@@ -501,27 +575,61 @@ int Primitive::Cone(float px, float py, float pz, float rx, float ry, float rz, 
 int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz)
 {
 
-	//mover para main thread
+	double start = FPlatformTime::Seconds();
 
 
+	UStaticMesh* loaded_mesh = FindMesh(FString("/Game/Box" +
+		FString::SanitizeFloat(sx) + ":" +
+		FString::SanitizeFloat(sy) + ":" +
+		FString::SanitizeFloat(sz)
+	));
+	if (loaded_mesh) {
+		AActor* realActor = PlaceStaticMesh(loaded_mesh, MyLookRotation(vx, vy), pos);
+		double end = FPlatformTime::Seconds();
+		UE_LOG(LogTemp, Warning, TEXT("Created with search in %f seconds."), end - start);
+		return listActor.Add(realActor);
+	}
+		
 		UE_LOG(LogTemp, Warning, TEXT("Creating a Cube"));
-		BoxCreation op = BoxCreation();
-		op.op = TypeOP::Cube;
-		op.scale = FVector(sx, sy, sz);
-		op.pos = pos;
-		op.rot = MyLookRotation(vx, vy);
-		if (parent > -1) {
-			op.parent = listActor[parent];
-		}
-		if (current_material > -1) {
-			op.mat = listMaterial[current_material];
-		}
-		queue->Enqueue(op);
-		waitForRequest();
-		Response r;
-		responsequeue->Dequeue(r);
-		AActor* newActor = r.getResponse();
-		return listActor.Add(newActor);
+
+		FTransform objectTrasform(FRotator(0, 0, 0), pos, FVector(1, 1, 1));
+		UWorld* World = GEditor->GetEditorWorldContext().World();
+		ABrush* NewBrush = World->SpawnBrush();
+		NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UKhepriBox::StaticClass(), NAME_None, RF_Transactional);
+		NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
+		NewBrush->Brush->Initialize(NewBrush, false);
+		NewBrush->SetActorRelativeTransform(objectTrasform);
+
+			NewBrush->BrushType = EBrushType::Brush_Add;
+
+		NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
+		NewBrush->SetNeedRebuild(NewBrush->GetLevel());
+
+		UKhepriBox* builder = (UKhepriBox*)NewBrush->BrushBuilder;
+		builder->X = sx * rescale;
+		builder->Y = sy* rescale;
+		builder->Z = sz * rescale;
+		builder->Build(World, NewBrush);
+
+		GEditor->RebuildAlteredBSP();
+		TArray<AActor*> bs;
+		bs.Add(NewBrush);
+		AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(bs, FString("/Game/Box" +
+			FString::SanitizeFloat(sx) + ":" +
+			FString::SanitizeFloat(sy) + ":" +
+			FString::SanitizeFloat(sz)
+		));
+
+		realActor->SetActorRotation(MyLookRotation(vx, vy));
+		realActor->SetActorLocation(pos);
+		if (parent > -1) 
+			realActor->AttachToActor(listActor[parent], FAttachmentTransformRules::KeepRelativeTransform);
+		if (current_material > -1) 
+			realActor->GetStaticMeshComponent()->SetMaterial(0, listMaterial[current_material]);
+
+		double end = FPlatformTime::Seconds();
+		UE_LOG(LogTemp, Warning, TEXT("Created in %f seconds."), end - start);
+		return listActor.Add(realActor);
 	
 }
 

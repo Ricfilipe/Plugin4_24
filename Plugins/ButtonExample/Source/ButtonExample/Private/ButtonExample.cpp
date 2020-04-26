@@ -28,7 +28,7 @@
 #include "Builders/CubeBuilder.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Styling/SlateTypes.h"
-#include "CustomBrushes/VertixBuilder.h"
+#include "CustomBrushes/KhepriMesh.h"
 #include "Operations/Operation.h"
 #include "rpi_service.h"
 #include "Engine/World.h"
@@ -36,12 +36,12 @@
 #include "Editor.h"
 #include "GameFramework/Actor.h"
 #include "EditorModeManager.h"
-
-
+#include "Engine/Polys.h"
+#include "rpi_service.h"
 
 using namespace std;
 
- rpi_service::RpiService* rpi;
+
 
 static const FName ButtonExampleTabName("ButtonExample");
 
@@ -51,7 +51,7 @@ bool AddictiveAtribute=true;
 float Vy, Vz;
 static int cubecount =0;
 
-
+rpi_service::RpiService* rpi;
 FRunnableProducer* producer;
 
 #define LOCTEXT_NAMESPACE "FButtonExampleModule"
@@ -110,15 +110,14 @@ void FButtonExampleModule::StartupModule()
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
 
 	 FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FButtonExampleModule::checkQueue),0.0f);
-	 producer = new FRunnableProducer();
+	
 }
 
 void FButtonExampleModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
-	producer->Kill();
-
+	
 
 
 	FButtonExampleStyle::Shutdown();
@@ -236,8 +235,8 @@ void  FButtonExampleModule::OnZChanged(float z) {
 
  FReply FButtonExampleModule::ButtonReply() {
 
-	 producer->Kill();
-	 producer = new FRunnableProducer();
+	 rpi = new rpi_service::RpiService;
+	 rpi->Run(11009);
 	return FReply::Handled();
 }
 
@@ -249,7 +248,25 @@ void  FButtonExampleModule::OnZChanged(float z) {
 
  FReply FButtonExampleModule::ButtonReply3() {
 
+	 FTransform objectTrasform(FRotator(0, 0, 0), FVector(0, 0, 0), FVector(1, 1, 1));
+	 UWorld* World = GEditor->GetEditorWorldContext().World();
+	 ABrush* NewBrush = World->SpawnBrush();
+	 NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UKhepriMesh::StaticClass(), NAME_None, RF_Transactional);
+	 NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
+	 NewBrush->Brush->Initialize(NewBrush, false);
+	 NewBrush->SetActorRelativeTransform(objectTrasform);
+	 NewBrush->BrushType = EBrushType::Brush_Add;
+	 NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
+	 NewBrush->SetNeedRebuild(NewBrush->GetLevel());
+	 UKhepriMesh* builder = (UKhepriMesh*)NewBrush->BrushBuilder;
+	  
+	 builder->mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Game/RightCuboid2a0b1a0b9a86922.RightCuboid2a0b1a0b9a86922"));
 
+	 builder->Build(World, NewBrush);
+	 //Optimize 
+    FPoly::OptimizeIntoConvexPolys(NewBrush, NewBrush->Brush->Polys->Element);
+
+	 GEditor->RebuildAlteredBSP();
 	 return FReply::Handled();
  }
 
