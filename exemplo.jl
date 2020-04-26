@@ -11,7 +11,7 @@ regular_pyramid_frustum()
 delete_all_shapes()
 current_layer(0)
 slab()
-
+subtract(box(),cylinder())
 chair()
 
 

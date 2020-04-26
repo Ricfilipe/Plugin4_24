@@ -808,6 +808,65 @@ int Primitive::BeamCircSection(FVector bot, float radius, FVector top, int mater
 	return listActor.Add(newActor);
 }
 
+int Primitive::Subtract(int ac1, int ac2) {
+	UE_LOG(LogTemp, Warning, TEXT("Creating a Subtraction"));
+	Operation op = Operation();
+	op.op = TypeOP::Subtraction;
+	op.selectedActors.Add(listActor[ac1]);
+	op.selectedActors.Add(listActor[ac2]);
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
+	if (current_material > -1) {
+		op.mat = listMaterial[current_material];
+	}
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse();
+	return listActor.Add(newActor);
+}
+
+int Primitive::Unite(int ac1, int ac2) {
+	UE_LOG(LogTemp, Warning, TEXT("Creating a Addition"));
+	Operation op = Operation();
+	op.op = TypeOP::Addition;
+	op.selectedActors.Add(listActor[ac1]);
+	op.selectedActors.Add(listActor[ac2]);
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
+	if (current_material > -1) {
+		op.mat = listMaterial[current_material];
+
+	}
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse();
+	return listActor.Add(newActor);
+}
+
+int Primitive::DeleteMany(TArray<int> acs)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Deleting Some Actors"));
+	Operation op = Operation();
+	op.op = TypeOP::Delete;
+	for (int ac : acs) {
+		op.selectedActors.Add(listActor[ac]);
+		listActor[ac] = NULL;
+	}
+	
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	return 0;
+}
+
+
 
 /*
 int Primitive::CopyMesh(char* label, int actor, float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz, const char* mat)

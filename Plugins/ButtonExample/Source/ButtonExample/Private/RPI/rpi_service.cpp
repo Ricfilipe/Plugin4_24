@@ -30,6 +30,9 @@ RpiService::RpiService() {
     ADD_FUNCTION(Primitive::BeamCircSection);
     ADD_FUNCTION(Primitive::Chair);
     ADD_FUNCTION(Primitive::InstantiateBIMElement);
+    ADD_FUNCTION(Primitive::Subtract);
+    ADD_FUNCTION(Primitive::Unite);
+    ADD_FUNCTION(Primitive::DeleteMany);
 	UE_LOG(LogThread, Log, TEXT("Created Thread"));
 }
 

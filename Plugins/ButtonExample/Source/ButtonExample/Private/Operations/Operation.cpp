@@ -20,13 +20,19 @@
 #include "CustomBrushes/KhepriPyramid.h"
 #include "CustomBrushes/KhepriPyramidFrustum.h"
 #include "CustomBrushes/VertixBuilder.h"
+#include "CustomBrushes/KhepriMesh.h"
 #include "Engine/Polys.h"
 
 
  int count_Pyramid;
 
  UStaticMesh* lookForMesh(FString mesh) {
+	
+	 mesh = mesh.Replace(TEXT("."), TEXT("a"));
+	 mesh = mesh.Replace(TEXT(":"), TEXT("b"));
+
 	 return LoadObject<UStaticMesh>(nullptr, *(mesh));
+
  }
 
 
@@ -39,9 +45,10 @@ Response Operation::execute()
 		break;
 	case Cube:
 		loaded_mesh = lookForMesh(FString("/Game/Box" +
-			FString::SanitizeFloat(scale.X) + ":" +
-			FString::SanitizeFloat(scale.Y) + ":" +
-			FString::SanitizeFloat(scale.Z)));
+		FString::SanitizeFloat(scale.X) + ":" +
+		FString::SanitizeFloat(scale.Y) + ":" +
+		FString::SanitizeFloat(scale.Z)
+	));
 		if (loaded_mesh){
 			return Response(PlaceStaticMesh(loaded_mesh));
 		}
@@ -97,6 +104,12 @@ Response Operation::execute()
 		break;
 	case Chair:
 		return Response(CreateChair());
+		break;
+	case Subtraction:
+		return Response(CreateSubtration());
+		break;
+	case Addition:
+		return Response(CreateAddition());
 		break;
 	}
 
@@ -209,6 +222,7 @@ AActor* Operation::CreateCone()
 
 AActor* Operation::CreateCube()
 {
+
 	FTransform objectTrasform(FRotator(0, 0, 0), pos, FVector(1, 1, 1));
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 	ABrush* NewBrush = World->SpawnBrush();
@@ -246,6 +260,7 @@ AActor* Operation::CreateCube()
 		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
 	if (mat != NULL)
 		realActor->GetStaticMeshComponent()->SetMaterial(0, mat);
+
 	return realActor;
 }
 
@@ -585,9 +600,79 @@ UMaterial* Operation::LoadMaterial()
 
 UStaticMesh* Operation::LoadResources()
 {
+
+
 	return LoadObject<UStaticMesh>(nullptr, *path);
 }
 
 
 
 
+
+AActor* convertMeshtoBrush(UStaticMesh* m, FRotator rot,FVector pos, bool addictive) {
+	FTransform objectTrasform(rot, pos, FVector(1, 1, 1));
+	UWorld* World = GEditor->GetEditorWorldContext().World();
+	ABrush* NewBrush = World->SpawnBrush();
+	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UKhepriMesh::StaticClass(), NAME_None, RF_Transactional);
+	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
+	NewBrush->Brush->Initialize(NewBrush, false);
+	NewBrush->SetActorRelativeTransform(objectTrasform);
+	if (addictive) {
+		NewBrush->BrushType = EBrushType::Brush_Add;
+	}
+	else {
+		NewBrush->BrushType = EBrushType::Brush_Subtract;
+	}
+	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
+	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
+	UKhepriMesh* builder = (UKhepriMesh*)NewBrush->BrushBuilder;
+	builder->mesh = m;
+	builder->Build(World, NewBrush);
+
+	//Optimize 
+	FPoly::OptimizeIntoConvexPolys(NewBrush, NewBrush->Brush->Polys->Element);
+
+	GEditor->RebuildAlteredBSP();
+	return NewBrush;
+}
+
+AActor* Operation::CreateSubtration()
+{
+	TArray<AActor*> brushes;
+	AStaticMeshActor* ac = Cast<AStaticMeshActor>(selectedActors[0]);
+	brushes.Add(convertMeshtoBrush(ac->GetStaticMeshComponent()->GetStaticMesh(),ac->GetActorRotation(), ac->GetActorLocation(), true));
+	for (int i = 1; i < selectedActors.Num(); i++) {
+		AStaticMeshActor* ac = Cast<AStaticMeshActor>(selectedActors[i]);
+		brushes.Add(convertMeshtoBrush(ac->GetStaticMeshComponent()->GetStaticMesh(), ac->GetActorRotation(), ac->GetActorLocation(), false));
+	}
+	AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(brushes, FString("/Game/Subtraction" +
+		FString::SanitizeFloat(count_Pyramid++)
+	));
+
+	if (mat != NULL)
+		realActor->GetStaticMeshComponent()->SetMaterial(0, mat);
+	if (parent != NULL)
+		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
+
+
+	return realActor;
+}
+
+AActor* Operation::CreateAddition()
+{
+	TArray<AActor*> brushes;
+	for (int i = 0; i < selectedActors.Num(); i++) {
+		AStaticMeshActor* ac = Cast<AStaticMeshActor>(selectedActors[i]);
+		brushes.Add(convertMeshtoBrush(ac->GetStaticMeshComponent()->GetStaticMesh(), ac->GetActorRotation(), ac->GetActorLocation(), false));
+	}
+	AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(brushes, FString("/Game/Addition" +
+		FString::SanitizeFloat(count_Pyramid++)
+	));
+
+	if (mat != NULL)
+		realActor->GetStaticMeshComponent()->SetMaterial(0, mat);
+	if (parent != NULL)
+		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
+
+	return realActor;
+}

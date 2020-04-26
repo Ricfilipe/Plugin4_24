@@ -18,6 +18,7 @@
 #include "CustomBrushes/KhepriRightCuboid.h"
 #include "CustomBrushes/KhepriPyramid.h"
 #include "CustomBrushes/KhepriPyramidFrustum.h"
+#include "CustomBrushes/KhepriMesh.h"
 
 
 #define LOCTEXT_NAMESPACE "BrushBuilder"
@@ -745,3 +746,93 @@ UKhepriPyramidFrustum::UKhepriPyramidFrustum(const FObjectInitializer& ObjectIni
 	BitmapFilename = TEXT("Btn_Pyramid");
 	ToolTip = TEXT("BrushBuilderName_Pyramid");
 }
+
+
+
+
+UKhepriMesh::UKhepriMesh(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FName NAME_Mesh;
+		FConstructorStatics()
+			: NAME_Mesh(TEXT("StaticMesh"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+
+	GroupName = ConstructorStatics.NAME_Mesh;
+	;
+	BitmapFilename = TEXT("Btn_Mesh");
+	ToolTip = TEXT("BrushBuilderName_Mesh");
+}
+
+void UKhepriMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (PropertyChangedEvent.Property)
+	{
+
+		static FName Name_Mesh(GET_MEMBER_NAME_CHECKED(UKhepriMesh, mesh));
+	
+	
+		if (PropertyChangedEvent.Property->GetFName() == Name_Mesh && mesh != NULL) {
+			int maxverts = mesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer.GetNumVertices();
+			for (int i = 0; i < maxverts; i++) {
+				FVector vt = mesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer.VertexPosition(i);
+				int id = vertices.Find(vt);
+				if (id == INDEX_NONE) {
+					id = vertices.Add(vt);
+				}
+				indices.Add(id);
+			}
+		}
+
+
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+bool UKhepriMesh::Build(UWorld* InWorld, ABrush* InBrush)
+{
+	BeginBrush(false, GroupName);
+	TArray<int> p;
+	BuildMesh(+1, vertices,indices , p);
+	return EndBrush(InWorld, InBrush);
+}
+
+void UKhepriMesh::BuildMesh(int32 Direction, TArray<FVector> verts, TArray<int> ids, TArray<int> poly)
+{
+
+	if (mesh != NULL) {
+
+		if (vertices.Num() == 0) {
+			int maxverts = mesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer.GetNumVertices();
+			for (int i = 0; i < maxverts; i++) {
+				FVector vt = mesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer.VertexPosition(i);
+				int id = vertices.Find(vt);
+				if (id == INDEX_NONE) {
+					id = vertices.Add(vt);
+				}
+				indices.Add(id);
+			}
+		}
+
+
+		for (FVector v : vertices) {
+			Vertex3f(v.X, v.Y, v.Z);
+		}
+		int maxfaces =mesh->RenderData->LODResources[0].IndexBuffer.GetNumIndices();
+		for (int i = 0; i < maxfaces; i=i+3) {
+			int id1 =  mesh->RenderData->LODResources[0].IndexBuffer.GetIndex(i);
+			int id2 = mesh->RenderData->LODResources[0].IndexBuffer.GetIndex(i+1);
+			int id3 = mesh->RenderData->LODResources[0].IndexBuffer.GetIndex(i + 2);
+			Poly3i(Direction,indices[id3], indices[id2], indices[id1]);
+		}
+	}
+}
+

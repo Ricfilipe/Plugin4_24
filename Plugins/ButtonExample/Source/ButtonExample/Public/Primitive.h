@@ -125,6 +125,12 @@ namespace Primitive {
 	
 	int InstantiateBIMElement(int family, FVector pos, float angle);
 
+	int Subtract(int ac1, int ac2);
+
+	int Unite(int ac1, int ac2);
+
+	int DeleteMany(TArray<int> acs);
+
 }
 
 

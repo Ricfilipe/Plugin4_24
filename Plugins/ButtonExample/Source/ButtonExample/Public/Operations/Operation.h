@@ -13,7 +13,7 @@
 
 enum TypeOP
 {
-	Sphere,Cube,Cylinder,Cone,RightCuboid,Pyramid,PyramidFrustum,Slab,Delete,PlaceMesh, LoadMat, LoadRes, Panel, Chair
+	Sphere,Cube,Cylinder,Cone,RightCuboid,Pyramid,PyramidFrustum,Slab,Delete,PlaceMesh, LoadMat, LoadRes, Panel, Chair,Addition,Subtraction
 };
 
 class BUTTONEXAMPLE_API Operation 
@@ -54,4 +54,6 @@ private:
 	AActor* PlaceStaticMesh(UStaticMesh* mesh);
 	UMaterial* LoadMaterial();
 	UStaticMesh* LoadResources();
+	AActor* CreateSubtration();
+	AActor* CreateAddition();
 };
