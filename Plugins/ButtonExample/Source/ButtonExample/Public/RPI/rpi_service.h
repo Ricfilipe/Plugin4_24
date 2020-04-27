@@ -20,6 +20,9 @@ public:
   void Run(unsigned short port);
   void InsertMap(std::string, std::unique_ptr <reification::HandlerInterface > );
 private:
+    binary_stream::BinaryStream* socket_stream;
+  boost::asio::io_service io_service;
+  boost::asio::ip::tcp::acceptor* acceptor;
   std::map<std::string, std::unique_ptr<reification::HandlerInterface>> handlers_map_;
   std::vector<std::unique_ptr<reification::HandlerInterface>> available_handlers_;
 };

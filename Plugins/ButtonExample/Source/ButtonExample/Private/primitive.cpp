@@ -494,7 +494,7 @@ int Primitive::StaticMesh(char* label, char* myStaticMesh, float px, float py, f
 int Primitive::Cylinder(FVector bot, float radius, FVector top)
 {
 	
-	UE_LOG(LogTemp, Warning, TEXT("Creating a Cylinder"));
+
 
 	double start = FPlatformTime::Seconds();
 
@@ -506,7 +506,6 @@ int Primitive::Cylinder(FVector bot, float radius, FVector top)
 	if (loaded_mesh) {
 		AActor* realActor = PlaceStaticMesh(loaded_mesh, FQuat::FindBetween(FVector(0, 0, 1), top - bot).Rotator(), bot);
 		double end = FPlatformTime::Seconds();
-		UE_LOG(LogTemp, Warning, TEXT("Created with search in %f seconds."), end - start);
 		return listActor.Add(realActor);
 	}
 
@@ -545,7 +544,6 @@ int Primitive::Cylinder(FVector bot, float radius, FVector top)
 	if (current_material > -1)
 		realActor->GetStaticMeshComponent()->SetMaterial(0, listMaterial[current_material]);
 	double end = FPlatformTime::Seconds();
-	UE_LOG(LogTemp, Warning, TEXT("Created in %f seconds."), end - start);
 	return listActor.Add(realActor);
 }
 
@@ -585,12 +583,10 @@ int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, floa
 	));
 	if (loaded_mesh) {
 		AActor* realActor = PlaceStaticMesh(loaded_mesh, MyLookRotation(vx, vy), pos);
-		double end = FPlatformTime::Seconds();
-		UE_LOG(LogTemp, Warning, TEXT("Created with search in %f seconds."), end - start);
+
 		return listActor.Add(realActor);
 	}
 		
-		UE_LOG(LogTemp, Warning, TEXT("Creating a Cube"));
 
 		FTransform objectTrasform(FRotator(0, 0, 0), pos, FVector(1, 1, 1));
 		UWorld* World = GEditor->GetEditorWorldContext().World();
@@ -627,8 +623,7 @@ int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, floa
 		if (current_material > -1) 
 			realActor->GetStaticMeshComponent()->SetMaterial(0, listMaterial[current_material]);
 
-		double end = FPlatformTime::Seconds();
-		UE_LOG(LogTemp, Warning, TEXT("Created in %f seconds."), end - start);
+
 		return listActor.Add(realActor);
 	
 }

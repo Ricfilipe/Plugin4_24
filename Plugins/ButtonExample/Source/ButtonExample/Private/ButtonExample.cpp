@@ -109,7 +109,7 @@ void FButtonExampleModule::StartupModule()
 		.SetDisplayName(LOCTEXT("FButtonExampleTabTitle", "ButtonExample"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
 
-	 FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FButtonExampleModule::checkQueue),0.0f);
+
 	
 }
 

@@ -32,6 +32,7 @@ Endianess GetSystemEndianess();
 
 class BinaryStream {
 public:
+    boost::asio::ip::tcp::socket socket_;
   BinaryStream(boost::asio::io_service&, Endianess);
 
   void VoidReadWrite();
@@ -150,7 +151,7 @@ public:
   }
 
 private:
-  boost::asio::ip::tcp::socket socket_;
+ 
   boost::system::error_code error_;
 
   Endianess order_;
