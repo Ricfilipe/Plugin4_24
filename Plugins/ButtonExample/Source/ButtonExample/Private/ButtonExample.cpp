@@ -15,29 +15,24 @@
 #include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Input/SSlider.h"
 #include "Misc/Attribute.h"
-#include "ButtonExample/Public/Primitive.h"
 #include "UObject/ConstructorHelpers.h"
-#include "Primitive.h"
-#include "FuctionObject.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "FRunnableConsumer.h"
 #include "FRunnableProducer.h"
 #include <string>
 #include <iostream>	
 #include <fstream>
-#include "Builders/CubeBuilder.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Styling/SlateTypes.h"
-#include "CustomBrushes/VertixBuilder.h"
-#include "Operations/Operation.h"
 #include "rpi_service.h"
 #include "Engine/World.h"
 #include "LevelEditor.h"
 #include "Editor.h"
 #include "GameFramework/Actor.h"
 #include "EditorModeManager.h"
-
-
+#include "RawMesh.h"
+#include "polypartition.h"
+#include "Primitive.h"
 
 using namespace std;
 
@@ -109,7 +104,7 @@ void FButtonExampleModule::StartupModule()
 		.SetDisplayName(LOCTEXT("FButtonExampleTabTitle", "ButtonExample"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
 
-	 FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FButtonExampleModule::checkQueue),0.0f);
+	 FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FButtonExampleModule::checkQueue),0.001f);
 	 producer = new FRunnableProducer();
 }
 
@@ -226,6 +221,443 @@ void FButtonExampleModule::OnSpFChanged(int x)
 
 
 
+
+
+
+
+
+struct Diagonal {
+	long index1;
+	long index2;
+
+	bool operator==(const Diagonal& p) const {
+		if ((index1 == p.index1) && (index2 == p.index2)) return true;
+		else return false;
+	}
+
+};
+
+struct DPState {
+	bool visible;
+	double weight;
+	long bestvertex;
+};
+
+
+
+bool IsConvex(const FVector p1, const FVector p2, const FVector p3) {
+	double tmp;
+	tmp = (p3.Y - p1.Y) * (p2.X - p1.X) - (p3.X - p1.X) * (p2.Y - p1.Y);
+	if (tmp > 0) return 1;
+	else return 0;
+}
+
+bool InCone(FVector p1, FVector p2, FVector p3, FVector p) {
+	bool convex;
+
+	convex = IsConvex(p1, p2, p3);
+
+	if (convex) {
+		if (!IsConvex(p1, p2, p)) return false;
+		if (!IsConvex(p2, p3, p)) return false;
+		return true;
+	}
+	else {
+		if (IsConvex(p1, p2, p)) return true;
+		if (IsConvex(p2, p3, p)) return true;
+		return false;
+	}
+}
+
+int Intersects(FVector p11, FVector p12, FVector p21, FVector p22) {
+	if ((p11.X == p21.X) && (p11.Y == p21.Y)) return 0;
+	if ((p11.X == p22.X) && (p11.Y == p22.Y)) return 0;
+	if ((p12.X == p21.X) && (p12.Y == p21.Y)) return 0;
+	if ((p12.X == p22.X) && (p12.Y == p22.Y)) return 0;
+
+	FVector v1ort, v2ort, v;
+	double dot11, dot12, dot21, dot22;
+
+	v1ort.X = p12.Y - p11.Y;
+	v1ort.Y = p11.X - p12.X;
+
+	v2ort.X = p22.Y - p21.Y;
+	v2ort.Y = p21.X - p22.X;
+
+	v = p21 - p11;
+	dot21 = v.X * v1ort.X + v.Y * v1ort.Y;
+	v = p22 - p11;
+	dot22 = v.X * v1ort.X + v.Y * v1ort.Y;
+
+	v = p11 - p21;
+	dot11 = v.X * v2ort.X + v.Y * v2ort.Y;
+	v = p12 - p21;
+	dot12 = v.X * v2ort.X + v.Y * v2ort.Y;
+
+	if (dot11 * dot12 > 0) return 0;
+	if (dot21 * dot22 > 0) return 0;
+
+	return 1;
+}
+
+FVector From3Dto2D(FVector v, FVector m[3]) {
+	return FVector(v.X * m[0].X + v.Y * m[0].Y + v.Z * m[0].Z, v.X * m[1].X + v.Y * m[1].Y + v.Z * m[1].Z, 0);
+}
+
+TArray<int> Triangulate_OPT(TArray<FVector> poly) {
+	long i, j, k, gap, n;
+	FVector p1, p2, p3, p4;
+	long bestvertex;
+	DPState** dpstates = NULL;
+	double weight, minweight, d1, d2;
+	Diagonal diagonal, newdiagonal;
+	TArray<Diagonal> diagonals;
+
+	TArray<int> triangles;
+	int ret = 1;
+	n = poly.Num();
+	dpstates = new DPState * [n];
+
+	for (i = 1; i < n; i++) {
+		dpstates[i] = new DPState[i];
+	}
+
+	for (i = 0; i < (n - 1); i++) {
+		p1 = poly[i];
+		for (j = i + 1; j < n; j++) {
+			dpstates[j][i].visible = true;
+			dpstates[j][i].weight = 0;
+			dpstates[j][i].bestvertex = -1;
+			if (j != (i + 1)) {
+				p2 = poly[j];
+
+				//visibility check
+				if (i == 0) p3 = poly[n - 1];
+				else p3 = poly[i - 1];
+				if (i == (n - 1)) p4 = poly[0];
+				else p4 = poly[i + 1];
+				if (!InCone(p3, p1, p4, p2)) {
+					dpstates[j][i].visible = false;
+					continue;
+				}
+
+				if (j == 0) p3 = poly[n - 1];
+				else p3 = poly[j - 1];
+				if (j == (n - 1)) p4 = poly[0];
+				else p4 = poly[j + 1];
+				if (!InCone(p3, p2, p4, p1)) {
+					dpstates[j][i].visible = false;
+					continue;
+				}
+
+				for (k = 0; k < n; k++) {
+					p3 = poly[k];
+					if (k == (n - 1)) p4 = poly[0];
+					else p4 = poly[k + 1];
+					if (Intersects(p1, p2, p3, p4)) {
+						dpstates[j][i].visible = false;
+						break;
+					}
+				}
+			}
+		}
+	}
+	dpstates[n - 1][0].visible = true;
+	dpstates[n - 1][0].weight = 0;
+	dpstates[n - 1][0].bestvertex = -1;
+
+	for (gap = 2; gap < n; gap++) {
+		for (i = 0; i < (n - gap); i++) {
+			j = i + gap;
+			if (!dpstates[j][i].visible) continue;
+			bestvertex = -1;
+			for (k = (i + 1); k < j; k++) {
+				if (!dpstates[k][i].visible) continue;
+				if (!dpstates[j][k].visible) continue;
+
+				if (k <= (i + 1)) d1 = 0;
+				else d1 = FVector::Distance(poly[i], poly[k]);
+				if (j <= (k + 1)) d2 = 0;
+				else d2 = FVector::Distance(poly[k], poly[j]);
+
+				weight = dpstates[k][i].weight + dpstates[j][k].weight + d1 + d2;
+
+				if ((bestvertex == -1) || (weight < minweight)) {
+					bestvertex = k;
+					minweight = weight;
+				}
+			}
+			if (bestvertex == -1) {
+				for (i = 1; i < n; i++) {
+					delete[] dpstates[i];
+				}
+				delete[] dpstates;
+
+				return triangles;
+			}
+
+			dpstates[j][i].bestvertex = bestvertex;
+			dpstates[j][i].weight = minweight;
+		}
+	}
+
+	newdiagonal.index1 = 0;
+	newdiagonal.index2 = n - 1;
+	diagonals.Add(newdiagonal);
+	while (!diagonals.Num() == 0) {
+		diagonal = diagonals[0];
+		diagonals.RemoveAt(0);
+		bestvertex = dpstates[diagonal.index2][diagonal.index1].bestvertex;
+		if (bestvertex == -1) {
+			ret = 0;
+			break;
+		}
+
+		triangles.Add(diagonal.index1);
+		triangles.Add((bestvertex));
+		triangles.Add(diagonal.index2);
+		if (bestvertex > (diagonal.index1 + 1)) {
+			newdiagonal.index1 = diagonal.index1;
+			newdiagonal.index2 = bestvertex;
+			diagonals.Add(newdiagonal);
+		}
+		if (diagonal.index2 > (bestvertex + 1)) {
+			newdiagonal.index1 = bestvertex;
+			newdiagonal.index2 = diagonal.index2;
+			diagonals.Add(newdiagonal);
+		}
+	}
+
+	for (i = 1; i < n; i++) {
+		delete[] dpstates[i];
+	}
+	delete[] dpstates;
+
+	return triangles;
+}
+
+
+
+
+
+TArray<int> convert2Indices(TArray<FVector> verts, TPPLPolyList polys, FVector delta) {
+	TArray<int> result;
+	list<TPPLPoly>::iterator iter;
+	for (iter = polys.begin(); iter != polys.end(); iter++) {
+		result.Add(verts.Find(FVector(iter->GetPoint(0).x, iter->GetPoint(0).y, 0) + delta));
+		result.Add(verts.Find(FVector(iter->GetPoint(1).x, iter->GetPoint(1).y, 0) + delta));
+		result.Add(verts.Find(FVector(iter->GetPoint(2).x, iter->GetPoint(2).y, 0) + delta));
+	}
+	return result;
+}
+
+
+void CreateStaticMesh() {
+	TPPLPoly poly;
+	// Object Details
+	FString ObjectName = FString("MyObject");
+	TArray<FVector> vertices2;
+	TArray<FVector> Vertices;
+
+	poly.Init(5);
+	
+		Vertices.Add(FVector(0 , 0, 0));
+		Vertices.Add(FVector(0, 0,  200));
+		Vertices.Add(FVector(200, 0, 0));
+		Vertices.Add(FVector(200, 0,  200));
+		Vertices.Add(FVector(200, 200, 0));
+		Vertices.Add(FVector(200, 200,  200));
+		Vertices.Add(FVector(100, 100, 0));
+		Vertices.Add(FVector(100, 100, 200));
+		Vertices.Add(FVector(0, 200, 0));
+		Vertices.Add(FVector(0, 200,  200));
+
+			vertices2.Add(FVector(0, 0, 0));
+			vertices2.Add(FVector(200, 0,0));
+			vertices2.Add(FVector(200, 200, 0));
+			vertices2.Add(FVector(100, 100, 0));
+			vertices2.Add(FVector(0, 200,0));
+			poly[0].x = 0;
+			poly[0].y = 0;
+			poly[1].x = 200;
+			poly[1].y = 0;
+			poly[2].x = 200;
+			poly[2].y = 200;
+			poly[3].x = 100;
+			poly[3].y = 100;
+			poly[4].x = 0;
+			poly[4].y = 200;
+
+		
+	
+	TPPLPartition pp;
+
+	TPPLPolyList trigs;
+	if(!pp.Triangulate_MONO(&poly,&trigs))
+		UE_LOG(LogTemp, Log, TEXT("ERROR!!!"));
+	TArray<int> result = convert2Indices(vertices2,trigs,FVector(0,0,0));
+
+	int numberOfVertices = Vertices.Num();
+
+	struct Face {
+		 int v1;
+		 int v2;
+		 int v3;
+		short materialID;
+		FVector2D uvCoords1;
+		FVector2D uvCoords2;
+		FVector2D uvCoords3;
+	};
+
+
+	TArray<Face> Faces;
+	Face oneFace;
+
+	double dist = FVector::Distance(Vertices[0], Vertices[2])/100;
+
+	FVector matrix[3];
+	matrix[2] = FVector::CrossProduct(Vertices[3] - Vertices[1], Vertices[5] - Vertices[1]).GetSafeNormal();
+	matrix[0] = (Vertices[3] - Vertices[1]).GetSafeNormal();
+	matrix[1] = FVector::CrossProduct(matrix[2],matrix[0]).GetSafeNormal();
+
+
+
+	for (int i = 0; i < numberOfVertices / 2; i++) {
+		oneFace = {   i * 2,   i * 2 + 1,   ((i * 2 + 3) % (numberOfVertices)),  0,  FVector2D(dist * i,0), FVector2D(dist*i, 2), FVector2D(dist * (i + 1), 2) };
+		Faces.Add(oneFace);
+		oneFace = { ((i * 2 + 3) % (numberOfVertices)), ((i * 2 + 2) % ( numberOfVertices)),   i * 2,  0,  FVector2D(dist * (i + 1),2), FVector2D(dist*(i+1), 0), FVector2D(dist * i, 0) };
+		Faces.Add(oneFace);
+	}
+
+	FVector v0 = From3Dto2D(Vertices[1], matrix);
+	for (int32 i = 0; i < result.Num() / 3; i++) {
+		FVector uv1 = From3Dto2D(Vertices[result[i*3] * 2 + 1]- Vertices[1],matrix);
+		FVector uv2 = From3Dto2D(Vertices[result[i * 3 + 1] * 2 + 1] - Vertices[1], matrix);
+		FVector uv3 = From3Dto2D(Vertices[result[i * 3 + 2] * 2 + 1] - Vertices[1], matrix);
+		oneFace = {result[i*3+2] * 2 + 1 , result[i*3+1] * 2 + 1 , result[i*3] * 2 + 1 ,  0,  FVector2D(uv3.X / 100,uv3.Y / 100), FVector2D(uv2.X / 100,uv2.Y / 100), FVector2D(uv1.X / 100,uv1.Y / 100) };
+		Faces.Add(oneFace);
+		oneFace = { result[i*3] * 2   ,  result[i*3+1] * 2 ,  result[i*3+2] * 2   ,  0, FVector2D(uv1.X / 100,uv1.Y / 100), FVector2D(uv2.X / 100,uv2.Y / 100),  FVector2D(uv3.X / 100,uv3.Y / 100) };
+		Faces.Add(oneFace);
+	}
+
+	/*
+
+	Vertices.Add(FVector(0, 0, 0));
+	Vertices.Add(FVector(0, 0, 200));
+
+
+	
+	for (int32 i = 0; i < numberOfVertices/2; i++){
+		FVector uv1 = Vertices[i * 2 + 1]- Vertices[0];
+		FVector uv2 = Vertices[((i + 1) % (numberOfVertices / 2)) * 2 + 1]-Vertices[0];
+		oneFace = { i * 2 +1 ,  numberOfVertices+1,  ((i+1)% (numberOfVertices/2)) * 2+1,  0,  FVector2D(uv1.X/100,uv1.Y / 100), -FVector2D(Vertices[0].X / 100,Vertices[0].Y / 100), FVector2D(uv2.X / 100,uv2.Y / 100) };
+		Faces.Add(oneFace);
+		oneFace = { ((i + 1) % (numberOfVertices / 2)) * 2  ,  numberOfVertices,  i * 2   ,  0, FVector2D(uv2.X / 100,uv2.Y / 100), -FVector2D(Vertices[0].X / 100,Vertices[0].Y / 100),  FVector2D(uv1.X / 100,uv1.Y / 100) };
+		Faces.Add(oneFace);
+	}
+	*/
+	numberOfVertices = Vertices.Num();
+	int numberOfFaces = Faces.Num();
+
+	TArray<FStaticMaterial> Materials; //This should contain the real Materials, this is just an example
+	Materials.Add(FStaticMaterial());
+	Materials.Add(FStaticMaterial());
+	int numberOfMaterials = Materials.Num();
+
+	// Create Package
+	FString pathPackage = FString("/Game");
+	FString absolutePathPackage = FPaths::GameContentDir();
+
+	FPackageName::RegisterMountPoint(*pathPackage, *absolutePathPackage);
+
+	UPackage* Package = CreatePackage(nullptr, *pathPackage);
+
+	// Create Static Mesh
+	FName StaticMeshName = MakeUniqueObjectName(Package, UStaticMesh::StaticClass(), FName(*ObjectName));
+	UStaticMesh* myStaticMesh = NewObject<UStaticMesh>(Package, StaticMeshName, RF_Public | RF_Standalone);
+
+	if (myStaticMesh != NULL)
+	{
+		FRawMesh myRawMesh = FRawMesh();
+		FColor WhiteVertex = FColor(255, 255, 255, 255);
+		FVector EmptyVector = FVector(0, 0, 0);
+
+		// Vertices
+		for (int vertIndex = 0; vertIndex < numberOfVertices; vertIndex++) {
+			myRawMesh.VertexPositions.Add(Vertices[vertIndex]);
+		}
+		// Faces and UV/Normals
+		for (int faceIndex = 0; faceIndex < numberOfFaces; faceIndex++) {
+			myRawMesh.WedgeIndices.Add(Faces[faceIndex].v1);
+			myRawMesh.WedgeIndices.Add(Faces[faceIndex].v2);
+			myRawMesh.WedgeIndices.Add(Faces[faceIndex].v3);
+
+			myRawMesh.WedgeColors.Add(WhiteVertex);
+			myRawMesh.WedgeColors.Add(WhiteVertex);
+			myRawMesh.WedgeColors.Add(WhiteVertex);
+
+			myRawMesh.WedgeTangentX.Add(EmptyVector);
+			myRawMesh.WedgeTangentX.Add(EmptyVector);
+			myRawMesh.WedgeTangentX.Add(EmptyVector);
+
+			myRawMesh.WedgeTangentY.Add(EmptyVector);
+			myRawMesh.WedgeTangentY.Add(EmptyVector);
+			myRawMesh.WedgeTangentY.Add(EmptyVector);
+			FVector cp = FVector::CrossProduct(Vertices[Faces[faceIndex].v3] - Vertices[Faces[faceIndex].v1], Vertices[Faces[faceIndex].v2] - Vertices[Faces[faceIndex].v1]);
+			myRawMesh.WedgeTangentZ.Add(cp);
+			myRawMesh.WedgeTangentZ.Add(cp);
+			myRawMesh.WedgeTangentZ.Add(cp);
+
+			// Materials
+			myRawMesh.FaceMaterialIndices.Add(Faces[faceIndex].materialID);
+
+			myRawMesh.FaceSmoothingMasks.Add(0xFFFFFFFF); // Phong
+
+			for (int UVIndex = 0; UVIndex < MAX_MESH_TEXTURE_COORDS; UVIndex++)
+			{
+				myRawMesh.WedgeTexCoords[UVIndex].Add(Faces[faceIndex].uvCoords1);
+				myRawMesh.WedgeTexCoords[UVIndex].Add(Faces[faceIndex].uvCoords2);
+				myRawMesh.WedgeTexCoords[UVIndex].Add(Faces[faceIndex].uvCoords3);
+			}
+		}
+
+		// Saving mesh in the StaticMesh
+		new(myStaticMesh->SourceModels) FStaticMeshSourceModel();
+		myStaticMesh->SourceModels[0].RawMeshBulkData->SaveRawMesh(myRawMesh);
+
+		FStaticMeshSourceModel& SrcModel = myStaticMesh->SourceModels[0];
+
+		// Model Configuration
+		myStaticMesh->SourceModels[0].BuildSettings.bRecomputeNormals = false;
+		myStaticMesh->SourceModels[0].BuildSettings.bRecomputeTangents = true;
+		myStaticMesh->SourceModels[0].BuildSettings.bUseMikkTSpace = false;
+		myStaticMesh->SourceModels[0].BuildSettings.bGenerateLightmapUVs = true;
+		myStaticMesh->SourceModels[0].BuildSettings.bBuildAdjacencyBuffer = false;
+		myStaticMesh->SourceModels[0].BuildSettings.bBuildReversedIndexBuffer = false;
+		myStaticMesh->SourceModels[0].BuildSettings.bUseFullPrecisionUVs = false;
+		myStaticMesh->SourceModels[0].BuildSettings.bUseHighPrecisionTangentBasis = false;
+
+		// Assign the Materials to the Slots (optional
+
+		for (int32 MaterialID = 0; MaterialID < numberOfMaterials; MaterialID++) {
+			myStaticMesh->StaticMaterials.Add(Materials[MaterialID]);
+			myStaticMesh->SectionInfoMap.Set(0, MaterialID, FMeshSectionInfo(MaterialID));
+		}
+
+		// Processing the StaticMesh and Marking it as not saved
+		myStaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
+		myStaticMesh->CreateBodySetup();
+		myStaticMesh->SetLightingGuid();
+		myStaticMesh->PostEditChange();
+		Package->MarkPackageDirty();
+
+		UE_LOG(LogTemp, Log, TEXT("Static Mesh created: %s"), &ObjectName);
+
+	};
+}
+
+
+
 void  FButtonExampleModule::OnYChanged(float y) {
 	Vy = y;
 }
@@ -249,7 +681,7 @@ void  FButtonExampleModule::OnZChanged(float z) {
 
  FReply FButtonExampleModule::ButtonReply3() {
 
-
+	 CreateStaticMesh();
 	 return FReply::Handled();
  }
 
@@ -264,7 +696,7 @@ void  FButtonExampleModule::OnZChanged(float z) {
  }
 
 
- 
+
 
 
    void FButtonExampleModule::DeleteAll() {

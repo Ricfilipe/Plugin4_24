@@ -23,6 +23,9 @@
 
 #define LOCTEXT_NAMESPACE "BrushBuilder"
 
+
+
+
 UEditorBrushBuilder::UEditorBrushBuilder(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -86,8 +89,15 @@ bool UVertixBuilder::Build(UWorld * InWorld, ABrush * InBrush)
 		}
 		BuildCustom(dir, DrawVertices, Height, Size);
 
-	
+		/*
+		for (int i = 0; i < poly.Num(); i = i + 3) {
+			Poly3i(dir, poly[i]*2, poly[i + 1]*2, poly[i + 2]*2);
+		}
 
+		for (int i = 0; i < poly.Num(); i = i + 3) {
+			Poly3i(-dir, poly[i] * 2+1, poly[i + 1] * 2+1, poly[i + 2] * 2+1);
+		}
+	*/
 			PolyBegin(dir, FName(TEXT("Cap")));
 			for (int j = 0; j < Size * 2; j = j + 2)
 				Polyi(j);

@@ -1,9 +1,13 @@
 using Khepri
 backend(unreal)
-Khepri.show_rpc(true)
-Khepri.step_rpc(true)
 box()
+box(loc_from_o_phi(xyz(1,0,0),pi/4),1,2,3)
+box(loc_from_o_vx_vy(xyz(1,0,0),vz(),vy()),1,2,3)
+box(loc_from_o_vz(xyz(1,0,0),vxy(1,1)),1,2,3)
+
 right_cuboid()
+cylinder()
+cylinder()
 cylinder()
 regular_pyramid()
 irregular_pyramid_frustum()
@@ -11,11 +15,12 @@ regular_pyramid_frustum()
 delete_all_shapes()
 current_layer(0)
 slab()
-subtract(box(),cylinder())
+panel()
 chair()
 
-
-get_material("/Game/StarterContent/Materials/M_Wood_Walnut.M_Wood_Walnut")
+Khepri.show_rpc(true)
+Khepri.step_rpc(true)
+get_material("/Game/MS_CleanBrick/Surface/07_Red_Brick_Wall_2x2_M_thmlaejg/RedBrickWall.RedBrickWall")
 
 
 

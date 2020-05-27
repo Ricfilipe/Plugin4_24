@@ -20,7 +20,7 @@ astana() =
     #with(default_beam_family, astana_beam_family) do
     begin
         delete_all_shapes()
-        #@with_layer "Mid Block Slabs" mid_block_slabs(astana_center_p)
+        @with_layer "Mid Block Slabs" mid_block_slabs(astana_center_p)
         #@with_layer "Out Block Out Slabs" out_block_out_slabs(astana_center_p)
         #@with_layer "Out Blocks in Slabs" out_block_in_slabs(astana_center_p, 4pi, 0, 0)
         # @with_layer "Spiral Steps" spiral_steps(astana_center_p)       #ALL AROUND SPIRAL STAIRS

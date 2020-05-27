@@ -12,14 +12,10 @@
 #include "Materials/Material.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "MaterialExpressionIO.h"
-#include "Builders/CubeBuilder.h"
-#include "Builders/CylinderBuilder.h"
-#include "Builders/ConeBuilder.h"
-#include "CustomBrushes/VertixBuilder.h"
 #include "Engine/Polys.h"
-#include "Builders/TetrahedronBuilder.h"
 #include "Operations/BoxCreation.h"
 #include "Operations/RightCuboidCreation.h"
+#include <Runtime\Engine\Classes\Kismet\KismetMathLibrary.h>
 
 
 int cube = 0, cylinder = 0, sphere = 0, object = 0;
@@ -27,31 +23,38 @@ int N_StaticMesh = 0;
 TArray< AActor* > brushes;
 int parent = -1;
 int current_material = -1;
+
 TQueue<Operation>* queue = new TQueue<Operation, EQueueMode::Spsc>();
 TQueue<Response>* responsequeue = new TQueue<Response, EQueueMode::Spsc>();
 //--------------------------------------------------------Placing Objects---------------------------------------------------------------------------//
 
 TArray<AActor*> listActor;
-TArray<UMaterial*> listMaterial;
+TArray<UMaterialInterface*> listMaterial;
 TArray<UStaticMesh*> listMesh;
 
 
 
 FRotator MyLookRotation(FVector lookAt, FVector upDirection)
 {
-	FVector forward = lookAt;
-	FVector up = upDirection.GetSafeNormal();
+	FVector forward = lookAt /100;
+	FVector up = upDirection/100;
+	
 
 
 	///////////////////////
 
 
+	UE_LOG(LogTemp, Warning, TEXT("forward: %s"), *forward.ToString());
 
+	UE_LOG(LogTemp, Warning, TEXT("up: %s"), *up.ToString());
 
+	return UKismetMathLibrary::MakeRotFromXZ(lookAt.GetSafeNormal(), upDirection.GetSafeNormal());
 
-	FVector vector = forward.GetSafeNormal();
+	FVector vector = forward;
 	FVector vector2 = FVector::CrossProduct(up, vector);
 	FVector vector3 = FVector::CrossProduct(vector, vector2);
+
+
 	float m00 = vector2.X;
 	float m01 = vector2.Y;
 	float m02 = vector2.Z;
@@ -61,7 +64,7 @@ FRotator MyLookRotation(FVector lookAt, FVector upDirection)
 	float m20 = vector.X;
 	float m21 = vector.Y;
 	float m22 = vector.Z;
-
+	
 
 	float num8 = (m00 + m11) + m22;
 	FQuat quaternion = FQuat();
@@ -131,19 +134,25 @@ void waitForRequest() {
 
 
 
-void execute(Operation op) {
-	op.execute();
-}
+
 
 bool  Primitive::checkQueue(float delta, int SpF) {
 	int num = 0;
 	Operation fo;
-	while (!(queue->IsEmpty()) && num < 100) {
+	FString pathPackage = FString("/Game/MyStaticMeshes");
+	FString absolutePathPackage = FPaths::GameContentDir() + "/MyStaticMeshes";
+
+
+
+	// Create Static Mesh
+
+
+	while (!(queue->IsEmpty()) ) {
 
 		queue->Dequeue(fo);
 
-		responsequeue->Enqueue(fo.execute());
-		num++;
+		responsequeue->Enqueue(fo.execute(NULL));
+		
 		FPlatformProcess::Sleep(0.001f);
 	}
 	return true;
@@ -188,182 +197,7 @@ int32 Primitive::spawnCube(FVector objectPosition, FRotator objectRotation, FVec
 
 
   */
-void Primitive::spawnBrushCylinder(FVector objectPosition, FRotator objectRotation, float height, float radius, int slides, bool addictive) {
-	FTransform objectTrasform(objectRotation, objectPosition, FVector(1, 1, 1));
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	ABrush* NewBrush = World->SpawnBrush();
-	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UCylinderBuilder::StaticClass(), NAME_None, RF_Transactional);
-	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
-	NewBrush->Brush->Initialize(NewBrush, false);
-	NewBrush->SetActorRelativeTransform(objectTrasform);
-	if (addictive) {
-		NewBrush->BrushType = EBrushType::Brush_Add;
-	}
-	else {
-		NewBrush->BrushType = EBrushType::Brush_Subtract;
-	}
-	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
-	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
-	UCylinderBuilder* builder = (UCylinderBuilder*)NewBrush->BrushBuilder;
-	builder->Z = 200 * height;
-	builder->OuterRadius = radius;
-	builder->Sides = slides;
-	brushes.Add(NewBrush);
-	GEditor->RebuildAlteredBSP();
-}
 
-void Primitive::spawnBrushCone(FVector objectPosition, FRotator objectRotation, float height, float radius, int slides, bool addictive)
-{
-	FTransform objectTrasform(objectRotation, objectPosition, FVector(1, 1, 1));
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	ABrush* NewBrush = World->SpawnBrush();
-	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UConeBuilder::StaticClass(), NAME_None, RF_Transactional);
-	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
-	NewBrush->Brush->Initialize(NewBrush, false);
-	NewBrush->SetActorRelativeTransform(objectTrasform);
-	if (addictive) {
-		NewBrush->BrushType = EBrushType::Brush_Add;
-	}
-	else {
-		NewBrush->BrushType = EBrushType::Brush_Subtract;
-	}
-	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
-	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
-	UConeBuilder* builder = (UConeBuilder*)NewBrush->BrushBuilder;
-	builder->Z = 200 * height;
-	builder->OuterRadius = radius;
-	builder->Sides = slides;
-	builder->Hollow = true;
-	brushes.Add(NewBrush);
-	GEditor->RebuildAlteredBSP();
-}
-
-void Primitive::spawnBrushConeHollow(FVector objectPosition, FRotator objectRotation, float height, float in_height, float radius, float in_radius, int slides, bool addictive)
-{
-	FTransform objectTrasform(objectRotation, objectPosition, FVector(1, 1, 1));
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	ABrush* NewBrush = World->SpawnBrush();
-	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UConeBuilder::StaticClass(), NAME_None, RF_Transactional);
-	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
-	NewBrush->Brush->Initialize(NewBrush, false);
-	NewBrush->SetActorRelativeTransform(objectTrasform);
-	if (addictive) {
-		NewBrush->BrushType = EBrushType::Brush_Add;
-	}
-	else {
-		NewBrush->BrushType = EBrushType::Brush_Subtract;
-	}
-	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
-	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
-	UConeBuilder* builder = (UConeBuilder*)NewBrush->BrushBuilder;
-	builder->Z = 200 * height;
-	builder->OuterRadius = radius;
-	builder->CapZ = in_height;
-	builder->InnerRadius = in_radius;
-	builder->Sides = slides;
-	builder->Hollow = true;
-	brushes.Add(NewBrush);
-	GEditor->RebuildAlteredBSP();
-}
-
-void Primitive::spawnBrushSphere(FVector objectPosition, FRotator objectRotation, float radius, int tesselation, bool addictive)
-{
-	FTransform objectTrasform(objectRotation, objectPosition, FVector(1, 1, 1));
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	ABrush* NewBrush = World->SpawnBrush();
-	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UTetrahedronBuilder::StaticClass(), NAME_None, RF_Transactional);
-	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
-	NewBrush->Brush->Initialize(NewBrush, false);
-	NewBrush->SetActorRelativeTransform(objectTrasform);
-	if (addictive) {
-		NewBrush->BrushType = EBrushType::Brush_Add;
-	}
-	else {
-		NewBrush->BrushType = EBrushType::Brush_Subtract;
-	}
-	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
-	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
-	UTetrahedronBuilder* builder = (UTetrahedronBuilder*)NewBrush->BrushBuilder;
-	builder->Radius = radius;
-	builder->SphereExtrapolation = tesselation;
-	brushes.Add(NewBrush);
-	GEditor->RebuildAlteredBSP();
-}
-
-void Primitive::spawnBrushCylinderHollow(FVector objectPosition, FRotator objectRotation, float height, float radius, float in_radius, int slides, bool addictive) {
-	FTransform objectTrasform(objectRotation, objectPosition, FVector(1, 1, 1));
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	ABrush* NewBrush = World->SpawnBrush();
-	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UCylinderBuilder::StaticClass(), NAME_None, RF_Transactional);
-	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
-	NewBrush->Brush->Initialize(NewBrush, false);
-	NewBrush->SetActorRelativeTransform(objectTrasform);
-	if (addictive) {
-		NewBrush->BrushType = EBrushType::Brush_Add;
-	}
-	else {
-		NewBrush->BrushType = EBrushType::Brush_Subtract;
-	}
-	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
-	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
-	UCylinderBuilder* builder = (UCylinderBuilder*)NewBrush->BrushBuilder;
-	builder->Z = 200 * height;
-	builder->OuterRadius = radius;
-	builder->InnerRadius = in_radius;
-	builder->Sides = slides;
-	builder->Hollow = true;
-	brushes.Add(NewBrush);
-	GEditor->RebuildAlteredBSP();
-}
-
-
-void Primitive::spawnCustom(FVector objectPosition, FRotator objectRotation, float height, TArray<FVector> vertices, int size, bool addictive) {
-	FTransform objectTrasform(objectRotation, objectPosition, FVector(1, 1, 1));
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	ABrush* NewBrush = World->SpawnBrush();
-	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UVertixBuilder::StaticClass(), NAME_None, RF_Transactional);
-	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
-	NewBrush->Brush->Initialize(NewBrush, false);
-	NewBrush->SetActorRelativeTransform(objectTrasform);
-	NewBrush->BrushType = EBrushType::Brush_Add;
-	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
-	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
-	if (addictive) {
-		NewBrush->BrushType = EBrushType::Brush_Add;
-	}
-	else {
-		NewBrush->BrushType = EBrushType::Brush_Subtract;
-	}
-	UVertixBuilder* builder = (UVertixBuilder*)NewBrush->BrushBuilder;
-	builder->DrawVertices = vertices;
-	builder->Size = size;
-	builder->Height = height;
-	builder->Build(World, NewBrush);
-
-	//Before Optimization Triangulate
-
-	TArray<FPoly> triangles;
-	FPoly cap1 = NewBrush->Brush->Polys->Element.Pop();
-
-	FPoly cap2 = NewBrush->Brush->Polys->Element.Pop();
-
-	cap1.Triangulate(NewBrush, triangles);
-	for (FPoly p : triangles) {
-		NewBrush->Brush->Polys->Element.Add(p);
-	}
-	triangles.Empty();
-	cap2.Triangulate(NewBrush, triangles);
-	for (FPoly p : triangles) {
-		NewBrush->Brush->Polys->Element.Add(p);
-	}
-
-	//Optimize 
-  //  FPoly::OptimizeIntoConvexPolys(NewBrush, NewBrush->Brush->Polys->Element);
-
-	GEditor->RebuildAlteredBSP();
-	brushes.Add(NewBrush);
-
-}
 
 AActor* Primitive::ConvertToStaticMesh(FString  name)
 {
@@ -527,14 +361,15 @@ int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, floa
 
 
 
-int Primitive::RightCuboid(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz, float angle)
+int Primitive::RightCuboid(FVector pos, FVector vx, FVector vz, float sx, float sy, float sz, float angle)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a RightCuboid"));
 	RightCuboidCreation op = RightCuboidCreation();
 	op.op = TypeOP::RightCuboid;
 	op.scale = FVector(sx, sy, sz);
 	op.pos = pos;
-	op.rot = ( MyLookRotation(vx, vy).Quaternion() * FQuat::MakeFromEuler(FVector(0, 0, FMath::RadiansToDegrees(angle)))).Rotator();
+
+	op.rot = ( MyLookRotation(vx, vz).Quaternion() * FQuat::MakeFromEuler(FVector(0, 0, FMath::RadiansToDegrees(angle)))).Rotator();
 	if (parent > -1) {
 		op.parent = listActor[parent];
 	}	
@@ -589,7 +424,37 @@ int Primitive::PyramidFrustum(TArray<FVector> ps, TArray<FVector> q)
 	return listActor.Add(newActor);
 }
 
-int Primitive::Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, float h)
+int Primitive::PyramidFrustumWithMaterial(TArray<FVector> ps, TArray<FVector> q, int material)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Creating a Pyramid Frustum"));
+	Operation op = Operation();
+	if (ps.Num() == 4) {
+		op.op = TypeOP::RightCuboid;
+		op.pos =  q[1] + (ps[0]-q[1])/2;
+		op.scale = FVector(FVector::Distance(ps[0],ps[1]), FVector::Distance(ps[0], q[0]), FVector::Distance(ps[0], ps[3]))/100;
+		op.rot = MyLookRotation(ps[1]-ps[0], ps[3]-ps[0]);
+	}else{
+	op.op = TypeOP::PyramidFrustumWall;
+	op.top = q;
+	op.base = ps;
+	}
+
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
+	if (material > -1) {
+		op.mat = listMaterial[material];
+	}
+
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse();
+	return listActor.Add(newActor);
+}
+
+int Primitive::Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, float h, int material)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating Slab"));
 	Operation op = Operation();
@@ -600,8 +465,8 @@ int Primitive::Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, floa
 	if (parent > -1) {
 		op.parent = listActor[parent];
 	}
-	if (current_material > -1) {
-		op.mat =listMaterial[current_material];
+	if (material > -1) {
+		op.mat = listMaterial[material];
 	}
 	queue->Enqueue(op);
 	waitForRequest();
@@ -688,7 +553,7 @@ int Primitive::LoadMaterial(std::string path)
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	UMaterial* mat = r.getMat();
+	UMaterialInterface* mat = r.getMat();
 	if (mat == NULL) {
 		return -1;
 	}
@@ -770,7 +635,7 @@ int Primitive::BeamRectSection(FVector pos, FVector vx, FVector vy, float dx, fl
 	op.op = TypeOP::RightCuboid;
 	op.scale = FVector(dx, dy, dz);
 	op.pos = pos;
-	op.rot = (MyLookRotation(vx, vy).Quaternion() * FQuat::MakeFromEuler(FVector(0, 0, FMath::RadiansToDegrees(angle)))).Rotator();
+	op.rot = (MyLookRotation(vx, vy).Quaternion() * FQuat::MakeFromEuler(FVector(0, 0, -FMath::RadiansToDegrees(angle)))).Rotator();
 	if (parent > -1) {
 		op.parent = listActor[parent];
 	}

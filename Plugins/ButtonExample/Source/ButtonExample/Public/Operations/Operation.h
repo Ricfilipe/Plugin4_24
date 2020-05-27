@@ -13,11 +13,29 @@
 
 enum TypeOP
 {
-	Sphere,Cube,Cylinder,Cone,RightCuboid,Pyramid,PyramidFrustum,Slab,Delete,PlaceMesh, LoadMat, LoadRes, Panel, Chair,Addition,Subtraction
+	Sphere,Cube,Cylinder,Cone,RightCuboid,Pyramid,PyramidFrustum,Slab,Delete,PlaceMesh, LoadMat, LoadRes, Panel, Chair,Addition,Subtraction, PyramidFrustumWall
 };
 
 class BUTTONEXAMPLE_API Operation 
 {
+
+
+	struct Face {
+		int v1;
+		int v2;
+		int v3;
+		short materialID;
+		FVector2D uvCoords1;
+		FVector2D uvCoords2;
+		FVector2D uvCoords3;
+		FVector UDirection1;
+		FVector UDirection2;
+		FVector UDirection3;
+		FVector VDirection;
+
+	};
+
+
 public:
 	TypeOP op;
 	FVector pos;
@@ -33,9 +51,10 @@ public:
 	TArray<TArray<FVector>> holes;
 	AActor* parent = NULL;
 	FString path;
-	UMaterial* mat = NULL;
+	UMaterialInterface* mat = NULL;
 	UStaticMesh* mesh = NULL;
-	Response execute();
+	UPackage* pk;
+	Response execute(UPackage* Package );
 	
 private:
 	
@@ -46,14 +65,16 @@ private:
 	AActor* CreateRightCuboid();
 	AActor* CreatePyramid();
 	AActor* CreatePyramidFrustum();
+	AActor* CreatePyramidFrustumWall();
 	AActor* CreateSlab();
 	AActor* CreatePanel();
 	AActor* CreateChair();
 	AActor* CreateEmptyActor();
 	void DeleteSelected();
 	AActor* PlaceStaticMesh(UStaticMesh* mesh);
-	UMaterial* LoadMaterial();
+	UMaterialInterface* LoadMaterial();
 	UStaticMesh* LoadResources();
 	AActor* CreateSubtration();
 	AActor* CreateAddition();
+	UStaticMesh* CreateMesh(FString name, TArray<FVector> vertices, TArray<Face> faces, int size);
 };

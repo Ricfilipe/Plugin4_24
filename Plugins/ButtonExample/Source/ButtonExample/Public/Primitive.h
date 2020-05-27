@@ -23,6 +23,7 @@ namespace Primitive {
 
 
 
+
 	//place StaticMEsh
 
 	int PlacingStaticMesh(char * label, char * myStaticMesh, FVector objectPosition, FRotator objectRotation, FVector objectScale, const char * mat);
@@ -42,17 +43,6 @@ namespace Primitive {
 
 	int32 spawnCube(FVector objectPosition, FRotator objectRotation, FVector objectScale, bool addictive, bool hollow);
 	*/
-	void spawnBrushCubeHollow(FVector objectPosition, FRotator objectRotation, FVector objectScale, float wall, bool addictive = true);
-
-	void spawnBrushCylinder(FVector objectPosition, FRotator objectRotation, float height, float radius, int slides, bool addictive=true);
-
-	void spawnBrushCylinderHollow(FVector objectPosition, FRotator objectRotation, float height, float radius, float in_radius, int slides, bool addictive = true);
-
-	void spawnBrushCone(FVector objectPosition, FRotator objectRotation, float height, float radius, int slides, bool addictive = true);
-
-	void spawnBrushConeHollow(FVector objectPosition, FRotator objectRotation, float height, float in_height, float radius, float in_radius, int slides, bool addictive = true);
-
-	void spawnBrushSphere(FVector objectPosition, FRotator objectRotation,  float radius, int tesselation, bool addictive = true);
 
 	//Creating StaticMesh From Brushes
 
@@ -95,7 +85,9 @@ namespace Primitive {
 
 	int  PyramidFrustum(TArray<FVector> ps, TArray<FVector> q);
 
-	int Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, float h);
+	int  PyramidFrustumWithMaterial(TArray<FVector> ps, TArray<FVector> q, int material);
+
+	int Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, float h, int material);
 
 	 int CurrentParent();
 

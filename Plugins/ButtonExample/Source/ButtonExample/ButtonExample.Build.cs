@@ -11,6 +11,7 @@ public class ButtonExample : ModuleRules
 		PublicIncludePaths.AddRange(
 			new string[] {
 				// ... add public include paths required here ...
+				"/Engine/Source/Developer/RawMesh/Public/RawMesh.h"
 			}
 			);
 				
@@ -26,8 +27,8 @@ public class ButtonExample : ModuleRules
 			new string[]
 			{
 				"Core",
-                "BoostLibrary"
-
+                "BoostLibrary",
+				"RawMesh"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);

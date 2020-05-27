@@ -16,6 +16,7 @@ RpiService::RpiService() {
     ADD_FUNCTION(Primitive::Cylinder);
     ADD_FUNCTION(Primitive::Pyramid);
     ADD_FUNCTION(Primitive::PyramidFrustum);
+    ADD_FUNCTION(Primitive::PyramidFrustumWithMaterial);
     ADD_FUNCTION(Primitive::DeleteAll);
     ADD_FUNCTION(Primitive::Slab);
     ADD_FUNCTION(Primitive::CurrentParent);
@@ -52,7 +53,7 @@ void rpi_service::RpiService::Run(unsigned short port) {
 	UE_LOG(LogThread, Warning, TEXT("Connected to Something"));
     boost::system::error_code error;
     for (;;) {
-      int id = socket_stream.Read<int>();
+        int32_t id = socket_stream.Read<int32_t>();
       if (socket_stream.GetReadLength() == 0) break;
       if (id != 0) {
 

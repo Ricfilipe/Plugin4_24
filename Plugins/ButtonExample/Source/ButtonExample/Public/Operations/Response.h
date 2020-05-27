@@ -6,15 +6,15 @@ class Response
 {
 private:
 	AActor* _resp;
-	UMaterial* _mat;
+	UMaterialInterface* _mat;
 	UStaticMesh* _mesh;
 public:
 	Response(AActor* resp);
-	Response(UMaterial* resp);
+	Response(UMaterialInterface* resp);
 	Response(UStaticMesh* resp);
 	Response();
 	AActor* getResponse();
-	UMaterial* getMat();
+	UMaterialInterface* getMat();
 	UStaticMesh* getMesh();
 };
 

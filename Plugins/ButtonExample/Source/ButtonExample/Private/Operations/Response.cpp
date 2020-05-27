@@ -6,7 +6,7 @@ Response::Response(AActor* resp)
 	_resp = resp;
 }
 
-Response::Response(UMaterial* resp)
+Response::Response(UMaterialInterface* resp)
 {
 	_mat = resp;
 }
@@ -28,7 +28,7 @@ AActor* Response::getResponse()
 	return _resp;
 }
 
-UMaterial* Response::getMat()
+UMaterialInterface* Response::getMat()
 {
 	return _mat;
 }

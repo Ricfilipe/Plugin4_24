@@ -70,9 +70,18 @@ public:
 
   template<>
   std::string Read(Type<std::string>) {
-      int32_t len = (int32_t)Read<char>();
+
+      int32_t result = 0, moreBytes = 0, pos = 0;
+      do
+      {
+          char len = (char)Read<char>();
+          result = (result << 7) | (len & 0x7F);
+          moreBytes = len & 0x80;
+          pos++;
+      } while (moreBytes);
+
     std::vector<char> r;
-    for (int32_t i = 0; i < len; i++) {
+    for (int32_t i = 0; i < result; i++) {
       r.push_back(Read<char>());
     }
     std::string str(r.begin(), r.end());
