@@ -18,7 +18,7 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //THE SOFTWARE.
 
-
+#include "polypartition.h"
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -28,9 +28,10 @@
 #include <vector>
 #include <stdexcept>
 
+
 using namespace std;
 
-#include "polypartition.h"
+
 
 #define TPPL_VERTEXTYPE_REGULAR 0
 #define TPPL_VERTEXTYPE_START 1

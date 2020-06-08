@@ -18,36 +18,49 @@
 #include "CustomBrushes/KhepriRightCuboid.h"
 
 
-Response RightCuboidCreation::execute()
+Response RightCuboidCreation::execute(UPackage* Package)
 {
-	FTransform objectTrasform(rot, pos - FVector(1, 1, 1), FVector(1, 1, 1));
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	ABrush* NewBrush = World->SpawnBrush();
-	NewBrush->BrushBuilder = NewObject<UBrushBuilder>(NewBrush, UKhepriRightCuboid::StaticClass(), NAME_None, RF_Transactional);
-	NewBrush->Brush = NewObject<UModel>(NewBrush, NAME_None, RF_Transactional);
-	NewBrush->Brush->Initialize(NewBrush, false);
-	NewBrush->SetActorRelativeTransform(objectTrasform);
-	if (true) {
-		NewBrush->BrushType = EBrushType::Brush_Add;
-	}
-	else {
-		NewBrush->BrushType = EBrushType::Brush_Subtract;
-	}
-	NewBrush->BrushBuilder->Build(NewBrush->GetWorld(), NewBrush);
-	NewBrush->SetNeedRebuild(NewBrush->GetLevel());
+	UE_LOG(LogTemp, Warning, TEXT("Polymorphism"));
+	TArray<FVector> Vertices;
+	TArray<Face> Faces;
 
-	UKhepriRightCuboid* builder = (UKhepriRightCuboid*)NewBrush->BrushBuilder;
-	builder->X = scale.X * rescale;
-	builder->Y = scale.Y * rescale;
-	builder->Z = scale.Z * rescale;
-	builder->Build(World, NewBrush);
+	Vertices.Add(FVector(-scale.X * rescale / 2, -scale.Y * rescale / 2, 0));
+	Vertices.Add(FVector(-scale.X * rescale / 2, -scale.Y * rescale / 2, scale.Z * rescale));
 
-	GEditor->RebuildAlteredBSP();
-	TArray<AActor*> bs;
-	bs.Add(NewBrush);
-	return Response(Primitive::ConvertToStaticMesh(bs, FString("RightCuboid" +
-		FString::SanitizeFloat(scale.X) + "_" +
-		FString::SanitizeFloat(scale.Y) + "_" +
+	Vertices.Add(FVector(scale.X * rescale / 2, -scale.Y * rescale / 2, 0));
+	Vertices.Add(FVector(scale.X * rescale / 2, -scale.Y * rescale / 2, scale.Z * rescale));
+
+	Vertices.Add(FVector(scale.X * rescale / 2, scale.Y * rescale / 2, 0));
+	Vertices.Add(FVector(scale.X * rescale / 2, scale.Y * rescale / 2, scale.Z * rescale));
+
+	Vertices.Add(FVector(-scale.X * rescale / 2, scale.Y * rescale / 2, 0));
+	Vertices.Add(FVector(-scale.X * rescale / 2, scale.Y * rescale / 2, scale.Z * rescale));
+
+
+	Face oneFace = { 2,4,0,  0,  FVector2D(scale.X,0), FVector2D(scale.X, scale.Y), FVector2D(0, 0) };
+	Faces.Add(oneFace);
+	oneFace = { 4,6,0,  0,  FVector2D(scale.X,scale.Y), FVector2D(0, scale.Y), FVector2D(0, 0) };
+	Faces.Add(oneFace);
+
+	oneFace = { 1,5,3,  0,  FVector2D(0,0), FVector2D(scale.X, scale.Y), FVector2D(scale.X, 0) };
+	Faces.Add(oneFace);
+	oneFace = { 1,7,5,  0,  FVector2D(0,0), FVector2D(0, scale.Y), FVector2D(scale.X, scale.Y) };
+	Faces.Add(oneFace);
+
+	int numberOfVertices = Vertices.Num();
+
+	for (int i = 0; i < numberOfVertices / 2; i++) {
+		float dist = FVector::Distance(Vertices[i * 2 + 1], Vertices[((i * 2 + 3) % (numberOfVertices))]) / 100;
+		oneFace = { i * 2,   i * 2 + 1,   ((i * 2 + 3) % (numberOfVertices)),  0,  FVector2D(0,0), FVector2D(0,  scale.Z), FVector2D(dist,  scale.Z) };
+		Faces.Add(oneFace);
+		oneFace = { ((i * 2 + 3) % (numberOfVertices)), ((i * 2 + 2) % (numberOfVertices)),   i * 2,  0,  FVector2D(dist, scale.Z), FVector2D(dist, 0), FVector2D(0, 0) };
+		Faces.Add(oneFace);
+	}
+
+	return PlaceStaticMesh(CreateMesh(FString("RightCuboid" +
+		FString::SanitizeFloat(scale.X) + ":" +
+		FString::SanitizeFloat(scale.Y) + ":" +
 		FString::SanitizeFloat(scale.Z)
-	)));
+	), Vertices, Faces, Vertices.Num()));
+
 }

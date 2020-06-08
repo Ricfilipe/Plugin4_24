@@ -123,6 +123,19 @@ namespace Primitive {
 
 	int DeleteMany(TArray<int> acs);
 
+
+	int DeleteMany(TArray<int> acs);
+
+	int PointLight(FVector position, FLinearColor color, float range, float intensity);
+
+	int SetView(FVector position, FVector target, float lens);
+   
+	FVector ViewCamera();
+
+	FVector ViewTarget();
+
+	float ViewLens();
+	int RenderView(int width, int height, FString name, FString path, int frame);
 }
 
 

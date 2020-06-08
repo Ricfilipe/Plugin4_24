@@ -3,7 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
+#include "Tracks/MovieSceneCameraCutTrack.h"
+#include "MovieSceneTrack.h"
+#include "Sections/MovieSceneCameraCutSection.h"
 #include "Operations/Response.h"
 /**
  * 
@@ -11,53 +13,81 @@
 #define rescale 100
 
 
+
 enum TypeOP
 {
-	Sphere,Cube,Cylinder,Cone,RightCuboid,Pyramid,PyramidFrustum,Slab,Delete,PlaceMesh, LoadMat, LoadRes, Panel, Chair,Addition,Subtraction, PyramidFrustumWall
+	Sphere,Cube,Cylinder,Cone,RightCuboid,Pyramid,PyramidFrustum,Slab,Delete,PlaceMesh, LoadMat, LoadRes, Panel, Chair,Addition,Subtraction, PyramidFrustumWall,PointLight,Camera,Render
 };
 
-class BUTTONEXAMPLE_API Operation 
+struct Face {
+	int v1;
+	int v2;
+	int v3;
+	short materialID;
+	FVector2D uvCoords1;
+	FVector2D uvCoords2;
+	FVector2D uvCoords3;
+	FVector UDirection1;
+	FVector UDirection2;
+	FVector UDirection3;
+	FVector VDirection;
+
+};
+
+class BUTTONEXAMPLE_API Operation
 {
 
-
-	struct Face {
-		int v1;
-		int v2;
-		int v3;
-		short materialID;
-		FVector2D uvCoords1;
-		FVector2D uvCoords2;
-		FVector2D uvCoords3;
-		FVector UDirection1;
-		FVector UDirection2;
-		FVector UDirection3;
-		FVector VDirection;
-
-	};
-
-
 public:
+
 	TypeOP op;
+
+	//Transform 
 	FVector pos;
 	FVector scale;
 	FRotator rot;
+	AActor* parent = NULL;
+
+	//Auxiliar Parameters for object creation
+
 	float radius;
 	float height;
 	FVector topPoint;
-	TArray<FVector> base;
-	TArray<FVector> top;
-	TArray<AActor*> selectedActors;
-	bool add = true;
-	TArray<TArray<FVector>> holes;
-	AActor* parent = NULL;
-	FString path;
+
+	//Loaded Files
+
 	UMaterialInterface* mat = NULL;
 	UStaticMesh* mesh = NULL;
-	UPackage* pk;
-	Response execute(UPackage* Package );
+
+	//Path
+	FString path;
+
+
+	//Lists of Points
+	TArray<FVector> base;
+	TArray<FVector> top;
+	TArray<TArray<FVector>> holes;
+
+	//Color
+	FLinearColor color;
+
+	//Boolean Operation Parameter
+	bool add = true;
+
+	//Multiple selection of Actors
+	TArray<AActor*> selectedActors;
+
+	//render
+	FString name;
+	int param[3];
+
+	virtual Response execute(UPackage* Package);
+protected:
 	
-private:
-	
+
+	/*Create Actors*/
+	AActor* CreateEmptyActor();
+
+	//Static Mesh
 	AActor* CreateSphere();
 	AActor* CreateCylinder();
 	AActor* CreateCone();
@@ -69,12 +99,33 @@ private:
 	AActor* CreateSlab();
 	AActor* CreatePanel();
 	AActor* CreateChair();
-	AActor* CreateEmptyActor();
+
+
+	//Light
+	AActor* CreatePointLight();
+
+	/*Delete Actors*/
 	void DeleteSelected();
-	AActor* PlaceStaticMesh(UStaticMesh* mesh);
+	
+
+	/*Render*/
+	AActor* CreateUpdateCamera();
+	AActor* CreateRender();
+
+	/*Load Files*/
 	UMaterialInterface* LoadMaterial();
 	UStaticMesh* LoadResources();
+
+
+	/*Boolean Operations*/
+
 	AActor* CreateSubtration();
 	AActor* CreateAddition();
+
+	/*Auxiliar Funcions*/
+
+	AActor* PlaceStaticMesh(UStaticMesh* mesh);
 	UStaticMesh* CreateMesh(FString name, TArray<FVector> vertices, TArray<Face> faces, int size);
+
+
 };

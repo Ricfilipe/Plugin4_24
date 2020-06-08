@@ -22,7 +22,7 @@ Khepri.show_rpc(true)
 Khepri.step_rpc(true)
 get_material("/Game/MS_CleanBrick/Surface/07_Red_Brick_Wall_2x2_M_thmlaejg/RedBrickWall.RedBrickWall")
 
-
+set_view(xyz(-3.504779815673828,-76.60165405273438,51.335548400878906), xyz(-3.52087664604187,-75.75193786621094,50.80855178833008), 35.0)
 
 
 space_city(p, r, α, β, δ, n) =

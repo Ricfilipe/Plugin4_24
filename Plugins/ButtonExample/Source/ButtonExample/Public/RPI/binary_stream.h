@@ -147,6 +147,19 @@ public:
        
   }
 
+  FVector Read(Type<FLinearColor>) {
+      return FLinearColor(Read<float>(), Read<float>(), Read<float>(), 0);
+
+  }
+
+  template<>
+  void Write(FVector const& value) {
+      Write<int32_t>(value.X);
+      Write<int32_t>(value.Y);
+      Write<int32_t>(value.Z);
+  }
+
+
   template<typename T>
   TArray<T> Read(Type<TArray<T>>) {
       int32_t len = Read<int32_t>();

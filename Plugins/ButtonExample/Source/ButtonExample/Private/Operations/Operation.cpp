@@ -25,8 +25,48 @@
 #include "RawMesh.h"
 #include "GeomTools.h"
 #include "polypartition.h"
+#include "Engine/PointLight.h"
+#include "Components/PointLightComponent.h"
+#include "CineCameraActor.h"
+
+#include "CineCameraComponent.h"
+#include "LevelSequenceActor.h"
+#include "IAssetTools.h"
+#include "AssetToolsModule.h"
+#include "Factories/Factory.h"
+#include "LevelSequence.h"
+#include "Tracks/MovieSceneCameraCutTrack.h"
+#include "MovieSceneTrack.h"
+#include "Sections/MovieSceneCameraCutSection.h"
+#include "MovieScene.h"
+#include "MovieSceneToolHelpers.h"
+#include "Tracks/MovieScene3DTransformTrack.h"
+#include "Channels/MovieSceneChannelProxy.h"
+#include "Tracks/MovieSceneFloatTrack.h"
+#include "LevelEditorViewport.h"
+
+#include "MovieSceneCapture.h"
 
  int count_Pyramid;
+
+ FVector nextFramePosition;
+ FRotator nextFramerotation;
+ float nextFrameCamera[3];
+ FString filmName;
+ ULevelSequence* current = NULL;
+
+
+ FMovieSceneFloatChannel* posX;
+ FMovieSceneFloatChannel* posY;
+ FMovieSceneFloatChannel* posZ;
+
+ FMovieSceneFloatChannel* rotX;
+ FMovieSceneFloatChannel* rotY;
+ FMovieSceneFloatChannel* rotZ;
+
+ FMovieSceneFloatChannel* aperture;
+ FMovieSceneFloatChannel* focal;
+ FMovieSceneFloatChannel* focus;
 
  UStaticMesh* lookForMesh(FString mesh) {
 	
@@ -39,7 +79,7 @@
 
 Response Operation::execute(UPackage* Package)
 {
-	pk = Package;
+
 	UStaticMesh* loaded_mesh = NULL;
 	switch (op) {
 	case Sphere:
@@ -116,7 +156,18 @@ Response Operation::execute(UPackage* Package)
 	case Addition:
 		return Response(CreateAddition());
 		break;
+	case PointLight:
+		return Response(CreatePointLight());
+		break;
+	case Camera:
+		return Response(CreateUpdateCamera());
+		break;
+	case Render:
+		return Response(CreateRender());
+		break;
 	}
+
+
 
 	return Response();
 }
@@ -1021,6 +1072,7 @@ AActor* Operation::CreateChair()
 }
 
 
+
 AActor* Operation::CreateEmptyActor()
 {
 	FVector objectScale(1, 1, 1);
@@ -1162,6 +1214,33 @@ AActor* Operation::CreateAddition()
 	return realActor;
 }
 
+AActor* Operation::CreatePointLight() {
+	FVector objectScale(1, 1, 1);
+	FTransform objectTrasform(FRotator(0,0,0), pos, objectScale);
+	UWorld* currentWorld = GEditor->GetEditorWorldContext().World();
+	ULevel* currentLevel = currentWorld->GetCurrentLevel();
+	UClass* staticMeshClass = APointLight::StaticClass();
+
+	AActor* newActorCreated = GEditor->AddActor(currentLevel, staticMeshClass, objectTrasform, true, RF_Public | RF_Standalone | RF_Transactional);
+
+	APointLight* realActor = Cast<APointLight>(newActorCreated);
+	realActor->SetActorLabel("PointLight");
+	realActor->PointLightComponent->Intensity = height;
+	realActor->PointLightComponent->SetAttenuationRadius(radius*rescale);
+	realActor->PointLightComponent->SetLightColor(color);
+	realActor->SetActorScale3D(objectScale);
+	realActor->SetActorRotation(FRotator(0, 0, 0));
+	realActor->SetActorLocation(pos);
+	if (parent != NULL)
+		realActor->AttachToActor(parent, FAttachmentTransformRules::KeepRelativeTransform);
+
+
+
+
+
+	return realActor;
+}
+
 UStaticMesh* Operation::CreateMesh(FString name, TArray<FVector> Vertices, TArray<Face> Faces, int size)
 {
 	// Object Details
@@ -1295,4 +1374,99 @@ UStaticMesh* Operation::CreateMesh(FString name, TArray<FVector> Vertices, TArra
 		return myStaticMesh;
 	}
 	return NULL;
+}
+
+
+ULevelSequence* CreateLevelSeq(const FString& AssetName, const FString& PackagePath, UObject* AssetToDuplicate) {
+	IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
+	UObject* NewAsset = nullptr;
+	for (TObjectIterator<UClass> It; It; ++It)
+	{
+		UClass* CurrentClass = *It;
+		if (CurrentClass->IsChildOf(UFactory::StaticClass()) && !(CurrentClass->HasAnyClassFlags(CLASS_Abstract)))
+		{
+			UFactory* Factory = Cast<UFactory>(CurrentClass->GetDefaultObject());
+			if (Factory->CanCreateNew() && Factory->ImportPriority >= 0 && Factory->SupportedClass == ULevelSequence::StaticClass())
+			{
+				if (AssetToDuplicate != nullptr)
+				{
+					NewAsset = AssetTools.DuplicateAsset(AssetName, PackagePath, AssetToDuplicate);
+				}
+				else
+				{
+					NewAsset = AssetTools.CreateAsset(AssetName, PackagePath, ULevelSequence::StaticClass(), Factory);
+				}
+				break;
+			}
+		}
+	}
+	return Cast<ULevelSequence>(NewAsset);
+}
+
+
+
+AActor* Operation::CreateUpdateCamera()
+{ 
+	nextFramerotation = rot;
+	nextFramePosition = pos;
+	nextFrameCamera[0] = radius;
+	GCurrentLevelEditingViewportClient->SetViewLocation(pos);
+	GCurrentLevelEditingViewportClient->SetLookAtLocation(scale);
+
+	return NULL;
+}
+
+AActor* Operation::CreateRender()
+{
+	ALevelSequenceActor* realActor = NULL;
+	if (current == NULL || name != filmName) {
+		filmName = name;
+		FTransform objectTrasform(FRotator(0,0,0), nextFramePosition, FVector(1,1,1));
+		UWorld* currentWorld = GEditor->GetEditorWorldContext().World();
+		ULevel* currentLevel = currentWorld->GetCurrentLevel();
+		UClass* staticMeshClass = ALevelSequenceActor::StaticClass();
+		AActor* newActorCreated = GEditor->AddActor(currentLevel, staticMeshClass, objectTrasform, true, RF_Public | RF_Standalone | RF_Transactional);
+
+		realActor = Cast<ALevelSequenceActor>(newActorCreated);
+		realActor->SetActorLabel("LevelSequence");
+		auto original = LoadObject<ULevelSequence>(nullptr, *FString("/Game/MyStaticMeshes/LevelSequence/ExampleSequence.ExampleSequence"));
+		current = CreateLevelSeq(filmName, FString("/Game/MyStaticMeshes/LevelSequence"), original);
+		realActor->SetSequence(current);
+		TArray<FMovieSceneBinding> binds = current->GetMovieScene()->GetBindings();
+
+		auto transformTrack = Cast<UMovieScene3DTransformTrack>(binds[0].GetTracks()[1]);
+		posX = transformTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[0];
+		posY = transformTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[1];
+		posZ = transformTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[2];
+
+		rotX = transformTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[3];
+		rotY = transformTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[4];
+		rotZ = transformTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[5];
+
+
+		auto focusTrack = Cast<UMovieSceneFloatTrack>(binds[1].GetTracks()[0]);
+		focus = focusTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[0];
+		auto focalTrack = Cast<UMovieSceneFloatTrack>(binds[1].GetTracks()[1]);
+		focal = focalTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[0];
+		auto apertureTrack = Cast<UMovieSceneFloatTrack>(binds[1].GetTracks()[2]);
+		aperture = apertureTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[0];
+
+	}
+	current->GetMovieScene()->SetSelectionRange(TRange<FFrameNumber>(FFrameNumber(param[3])));
+	posX->AddConstantKey(FFrameNumber(param[3]), nextFramePosition.X);
+	posY->AddConstantKey(FFrameNumber(param[3]), nextFramePosition.Y);
+	posZ->AddConstantKey(FFrameNumber(param[3]), nextFramePosition.Z);
+
+	rotX->AddConstantKey(FFrameNumber(param[3]), nextFramerotation.Euler().X);
+	rotY->AddConstantKey(FFrameNumber(param[3]), nextFramerotation.Euler().Y);
+	rotZ->AddConstantKey(FFrameNumber(param[3]), nextFramerotation.Euler().Z);
+
+	focus->AddConstantKey(FFrameNumber(param[3]), nextFrameCamera[0]);
+
+
+	UMovieSceneCapture* capture();
+
+
+
+	return realActor;
 }

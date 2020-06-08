@@ -11,7 +11,16 @@ public class ButtonExample : ModuleRules
 		PublicIncludePaths.AddRange(
 			new string[] {
 				// ... add public include paths required here ...
-				"/Engine/Source/Developer/RawMesh/Public/RawMesh.h"
+				"/Engine/Source/Developer/RawMesh/Public/RawMesh.h",
+				"/Engine/Source/Runtime/CinematicCamera/Public/CineCameraActor.h",
+				"/Engine/Source/Runtime/LevelSequence/Public/LevelSequenceActor.h",
+				"/Engine/Source/Runtime/LevelSequence/Public/LevelSequence.h",
+				"/Engine/Source/Editor/MovieSceneTools/Public/MovieSceneToolHelpers.h",
+				"/Engine/Source/Editor/MovieSceneTools/Public/AutomatedLevelSequenceCapture.h",
+				"/Engine/Source/Runtime/MovieSceneCapture/Public/Protocols/AudioCaptureProtocol.h",
+				"/Engine/Source/Runtime/ImageWriteQueue/Public/ImageWriteTypes.h",
+				"/Engine/Source/Runtime/MovieSceneCapture/Public/Protocols/ImageSequenceProtocol.h"
+
 			}
 			);
 				
@@ -19,6 +28,7 @@ public class ButtonExample : ModuleRules
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				// ... add other private include paths required here ...
+
 			}
 			);
 			
@@ -28,7 +38,14 @@ public class ButtonExample : ModuleRules
 			{
 				"Core",
                 "BoostLibrary",
-				"RawMesh"
+				"RawMesh",
+				"CinematicCamera",
+				"LevelSequence",
+				"MovieSceneTracks",
+				"MovieScene",
+				"MovieSceneTools",
+				"MovieSceneCapture",
+				"ImageWriteQueue"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);

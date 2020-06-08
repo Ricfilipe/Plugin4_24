@@ -33,6 +33,25 @@
 #include "RawMesh.h"
 #include "polypartition.h"
 #include "Primitive.h"
+#include "LevelSequenceActor.h"
+#include "IAssetTools.h"
+#include "AssetToolsModule.h"
+#include "Factories/Factory.h"
+#include "LevelSequence.h"
+#include "Tracks/MovieSceneCameraCutTrack.h"
+#include "MovieSceneTrack.h"
+#include "Sections/MovieSceneCameraCutSection.h"
+#include "MovieScene.h"
+#include "Tracks/MovieScene3DTransformTrack.h"
+#include "Channels/MovieSceneChannelProxy.h"
+#include "Tracks/MovieSceneFloatTrack.h"
+#include "AutomatedLevelSequenceCapture.h"
+#include "Slate/SceneViewport.h"
+#include "GameFramework/WorldSettings.h"
+#include "GameFramework/GameMode.h"
+#include "Protocols/AudioCaptureProtocol.h"
+#include "Protocols/ImageSequenceProtocol.h"
+#include "ImageWriteTypes.h"
 
 using namespace std;
 
@@ -45,7 +64,7 @@ bool AddictiveAtribute=true;
 
 float Vy, Vz;
 static int cubecount =0;
-
+UAutomatedLevelSequenceCapture* MovieSceneCapture;
 
 FRunnableProducer* producer;
 
@@ -657,6 +676,31 @@ void CreateStaticMesh() {
 }
 
 
+ULevelSequence* CreateLevelSequence(const FString& AssetName, const FString& PackagePath, UObject* AssetToDuplicate) {
+	IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
+	UObject* NewAsset = nullptr;
+	for (TObjectIterator<UClass> It; It; ++It)
+	{
+		UClass* CurrentClass = *It;
+		if (CurrentClass->IsChildOf(UFactory::StaticClass()) && !(CurrentClass->HasAnyClassFlags(CLASS_Abstract)))
+		{
+			UFactory* Factory = Cast<UFactory>(CurrentClass->GetDefaultObject());
+			if (Factory->CanCreateNew() && Factory->ImportPriority >= 0 && Factory->SupportedClass == ULevelSequence::StaticClass())
+			{
+				if (AssetToDuplicate != nullptr)
+				{
+					NewAsset = AssetTools.DuplicateAsset(AssetName, PackagePath, AssetToDuplicate);
+				}
+				else
+				{
+					NewAsset = AssetTools.CreateAsset(AssetName, PackagePath, ULevelSequence::StaticClass(), Factory);
+				}
+				break;
+			}
+		}
+	}
+	return Cast<ULevelSequence>(NewAsset);
+}
 
 void  FButtonExampleModule::OnYChanged(float y) {
 	Vy = y;
@@ -681,12 +725,130 @@ void  FButtonExampleModule::OnZChanged(float z) {
 
  FReply FButtonExampleModule::ButtonReply3() {
 
-	 CreateStaticMesh();
+	 FVector pos = FVector(0, 0, 0);
+	 FRotator rot = FRotator(0, 0, 0);
+	 FVector objectScale = FVector(0, 0, 0);
+	 FTransform objectTrasform(rot, pos, objectScale);
+	 UWorld* currentWorld = GEditor->GetEditorWorldContext().World();
+	 ULevel* currentLevel = currentWorld->GetCurrentLevel();
+	 UClass* staticMeshClass = ALevelSequenceActor::StaticClass();
+
+	 AActor* newActorCreated = GEditor->AddActor(currentLevel, staticMeshClass, objectTrasform, true, RF_Public | RF_Standalone | RF_Transactional);
+
+	 ALevelSequenceActor* realActor = Cast<ALevelSequenceActor>(newActorCreated);
+	 realActor->SetActorLabel("LevelSequence");
+	auto original = LoadObject<ULevelSequence>(nullptr, *FString("/Game/MyStaticMeshes/LevelSequence/ExampleSequence.ExampleSequence"));
+	auto copy = CreateLevelSequence(FString("LevelSequence"), FString("/Game/MyStaticMeshes/LevelSequence"), original);
+
+
+
+	MovieSceneCapture = NewObject<UAutomatedLevelSequenceCapture>(GetTransientPackage(), UAutomatedLevelSequenceCapture::StaticClass(), FName("MovieCapture"), RF_Transient);
+	MovieSceneCapture->ImageCaptureProtocolType = UImageSequenceProtocol_PNG::StaticClass();
+	UImageSequenceProtocol_PNG* ImageCaptureProtocol = NewObject<UImageSequenceProtocol_PNG>(MovieSceneCapture, UImageSequenceProtocol_PNG::StaticClass(), FName("UUserDefinedImageCaptureProtocol"));
+	MovieSceneCapture->ImageCaptureProtocol = ImageCaptureProtocol;
+	MovieSceneCapture->LoadFromConfig();
+
+	MovieSceneCapture->LevelSequenceAsset = copy->GetMovieScene()->GetOuter()->GetPathName();
+	ULevelEditorPlaySettings* PlayInEditorSettings = GetMutableDefault<ULevelEditorPlaySettings>();
+
+		
+	const FMovieSceneCaptureSettings& Settings = MovieSceneCapture->GetSettings();
+	
+	PlayInEditorSettings->NewWindowWidth = Settings.Resolution.ResX;
+	PlayInEditorSettings->NewWindowHeight = Settings.Resolution.ResY;
+	PlayInEditorSettings->CenterNewWindow = true;
+	PlayInEditorSettings->LastExecutedPlayModeType = EPlayModeType::PlayMode_InEditorFloating;
+
+	TSharedRef<SWindow> CustomWindow = SNew(SWindow)
+		.Title(LOCTEXT("MovieRenderPreviewTitle", "Movie Render - Preview"))
+		.AutoCenter(EAutoCenter::PrimaryWorkArea)
+		.UseOSWindowBorder(true)
+		.FocusWhenFirstShown(false)
+		.ActivationPolicy(EWindowActivationPolicy::Never)
+		.HasCloseButton(true)
+		.SupportsMaximize(false)
+		.SupportsMinimize(true)
+		.MaxWidth(Settings.Resolution.ResX)
+		.MaxHeight(Settings.Resolution.ResY)
+		.SizingRule(ESizingRule::FixedSize);
+
+	FSlateApplication::Get().AddWindow(CustomWindow);
+
+	PlayInEditorSettings->CustomPIEWindow = CustomWindow;
+
+	// Reset everything else
+	PlayInEditorSettings->GameGetsMouseControl = false;
+	PlayInEditorSettings->ShowMouseControlLabel = false;
+	PlayInEditorSettings->ViewportGetsHMDControl = false;
+	PlayInEditorSettings->ShouldMinimizeEditorOnVRPIE = true;
+	PlayInEditorSettings->EnableGameSound = MovieSceneCapture->AudioCaptureProtocolType != UNullAudioCaptureProtocol::StaticClass();
+	PlayInEditorSettings->bOnlyLoadVisibleLevelsInPIE = false;
+	PlayInEditorSettings->bPreferToStreamLevelsInPIE = false;
+	PlayInEditorSettings->PIEAlwaysOnTop = false;
+	PlayInEditorSettings->DisableStandaloneSound = false;
+	PlayInEditorSettings->AdditionalLaunchParameters = TEXT("");
+	PlayInEditorSettings->BuildGameBeforeLaunch = EPlayOnBuildMode::PlayOnBuild_Never;
+	PlayInEditorSettings->LaunchConfiguration = EPlayOnLaunchConfiguration::LaunchConfig_Default;
+	PlayInEditorSettings->SetPlayNetMode(EPlayNetMode::PIE_Standalone);
+	PlayInEditorSettings->SetRunUnderOneProcess(true);
+	PlayInEditorSettings->SetPlayNetDedicated(false);
+	PlayInEditorSettings->SetPlayNumberOfClients(1);
+
+
+	FFrameRate DisplayRate = FFrameRate();
+	MovieSceneCapture->Settings.bUseCustomFrameRate = true;
+
+	MovieSceneCapture->Settings.FrameRate = DisplayRate;
+	MovieSceneCapture->Settings.ZeroPadFrameNumbers =0;
+	MovieSceneCapture->Settings.bUseRelativeFrameNumbers = false;
+
+	FFrameNumber StartFrame = FFrameNumber(0);
+	FFrameNumber EndFrame = FFrameNumber(1);
+	MovieSceneCapture->SetFrameOverrides(StartFrame, EndFrame);
+
+	MovieSceneCapture->AddToRoot();
+	MovieSceneCapture->OnCaptureFinished().AddRaw(this, &FButtonExampleModule::OnLevelSequenceFinished);
+	MovieSceneCapture->Settings.Resolution = FCaptureResolution(1920,1080);
+
+
+	UGameViewportClient::OnViewportCreated().AddRaw(this, &FButtonExampleModule::OnPIEViewportStarted);
+
+	realActor->SetSequence(copy);
+	 realActor->SetActorScale3D(objectScale);
+	 realActor->SetActorRotation(rot);
+	 realActor->SetActorLocation(pos);
+
+
+
+	 GEditor->RequestPlaySession(true, nullptr, false);
 	 return FReply::Handled();
  }
 
  FReply FButtonExampleModule::ButtonReply4() {
-	 Primitive::ConvertToStaticMesh();
+
+
+	 auto original = LoadObject<ULevelSequence>(nullptr, *FString("/Game/MyStaticMeshes/LevelSequence/LevelSequence.LevelSequence"));
+	 FFrameRate DisplayRate = FFrameRate();
+
+	 MovieSceneCapture = NewObject<UAutomatedLevelSequenceCapture>(GetTransientPackage(), UAutomatedLevelSequenceCapture::StaticClass(), FName(), RF_Transient);
+	 MovieSceneCapture->LoadFromConfig();
+
+	 MovieSceneCapture->LevelSequenceAsset = original->GetMovieScene()->GetOuter()->GetPathName();
+
+
+
+	 MovieSceneCapture->Settings.bUseCustomFrameRate = true;
+	 MovieSceneCapture->Settings.FrameRate = DisplayRate;
+	 MovieSceneCapture->Settings.ZeroPadFrameNumbers = 0;
+	 MovieSceneCapture->Settings.bUseRelativeFrameNumbers = false;
+
+	 FFrameNumber StartFrame = FFrameNumber(0);
+	 FFrameNumber EndFrame = FFrameNumber(10);
+	 MovieSceneCapture->SetFrameOverrides(StartFrame, EndFrame);
+
+	 MovieSceneCapture->AddToRoot();
+	 MovieSceneCapture->OnCaptureFinished().AddRaw(this, &FButtonExampleModule::OnLevelSequenceFinished);
+	 UGameViewportClient::OnViewportCreated().AddRaw(this, &FButtonExampleModule::OnPIEViewportStarted);
 	 return FReply::Handled();
  }
 
@@ -696,8 +858,78 @@ void  FButtonExampleModule::OnZChanged(float z) {
  }
 
 
+ void FButtonExampleModule::OnPIEViewportStarted() {
+	 for (const FWorldContext& Context : GEngine->GetWorldContexts())
+	 {
+		 if (Context.WorldType == EWorldType::PIE)
+		 {
+		
+			 FSlatePlayInEditorInfo* SlatePlayInEditorSession = GEditor->SlatePlayInEditorMap.Find(Context.ContextHandle);
+			 if (SlatePlayInEditorSession)
+			 {
+				UWorld* CapturingFromWorld = Context.World();
+
+				 TSharedPtr<SWindow> Window = SlatePlayInEditorSession->SlatePlayInEditorWindow.Pin();
+
+				 const FMovieSceneCaptureSettings& Settings = MovieSceneCapture->GetSettings();
+
+			
+				 SlatePlayInEditorSession->SlatePlayInEditorWindowViewport.Get()->SetViewportSize(Settings.Resolution.ResX, Settings.Resolution.ResY);
+
+				 FVector2D PreviewWindowSize(Settings.Resolution.ResX, Settings.Resolution.ResY);
+
+				 // Keep scaling down the window size while we're bigger than half the desktop width/height
+				 {
+					 FDisplayMetrics DisplayMetrics;
+					 FSlateApplication::Get().GetCachedDisplayMetrics(DisplayMetrics);
+
+					 while (PreviewWindowSize.X >= DisplayMetrics.PrimaryDisplayWidth * .5f || PreviewWindowSize.Y >= DisplayMetrics.PrimaryDisplayHeight * .5f)
+					 {
+						 PreviewWindowSize *= .5f;
+					 }
+				 }
+
+				 // Resize and move the window into the desktop a bit
+				 FVector2D PreviewWindowPosition(50, 50);
+				 Window->ReshapeWindow(PreviewWindowPosition, PreviewWindowSize);
+
+				 if (MovieSceneCapture->Settings.GameModeOverride != nullptr)
+				 {
+				
+					  CapturingFromWorld->GetWorldSettings()->DefaultGameMode = MovieSceneCapture->Settings.GameModeOverride;
+				 }
+
+				 auto CachedEngineShowFlags = SlatePlayInEditorSession->SlatePlayInEditorWindowViewport->GetClient()->GetEngineShowFlags();
+				 if (CachedEngineShowFlags && Settings.bUsePathTracer)
+				 {
+					 auto CachedPathTracingMode = CachedEngineShowFlags->PathTracing;
+					 CachedEngineShowFlags->SetPathTracing(true);
+				 }
+				 MovieSceneCapture->Initialize(SlatePlayInEditorSession->SlatePlayInEditorWindowViewport, Context.PIEInstance);
+				 
+			 }
+
+			 FString CapturePath = MovieSceneCapture->ResolveFileFormat(MovieSceneCapture->Settings.OutputDirectory.Path, FFrameMetrics());
+			 UE_LOG(LogTemp, Warning, TEXT("%s"), *(CapturePath));
+			 return;
+		 }
+	 }
+
+	 UE_LOG(LogTemp, Warning, TEXT("Recieved PIE Creation callback but failed to find PIE World or missing FSlatePlayInEditorInfo for world."));
+ }
+
+ void FButtonExampleModule::OnLevelSequenceFinished() {
 
 
+	 GEditor->RequestEndPlayMap();
+
+	 FEditorDelegates::EndPIE.RemoveAll(this);
+	 UGameViewportClient::OnViewportCreated().RemoveAll(this);
+	 MovieSceneCapture->OnCaptureFinished().RemoveAll(this);
+
+	 MovieSceneCapture->Close();
+	 MovieSceneCapture->RemoveFromRoot();
+ }
 
    void FButtonExampleModule::DeleteAll() {
 	 UWorld* currentWorld = GEditor->GetEditorWorldContext().World();

@@ -14,6 +14,7 @@ class FButtonExampleModule : public IModuleInterface
 {
 public:
 
+
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
@@ -25,6 +26,8 @@ public:
 	FReply ButtonReply3();
 	FReply ButtonReply4();
 	void PlacingStaticMesh();
+	void OnPIEViewportStarted();
+	void OnLevelSequenceFinished();
 	void DeleteAll();
 	void read(FuctionObject fo);
 	bool  checkQueue(float delta);

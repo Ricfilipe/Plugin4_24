@@ -32,7 +32,7 @@ TArray<AActor*> listActor;
 TArray<UMaterialInterface*> listMaterial;
 TArray<UStaticMesh*> listMesh;
 
-
+ACameraActor* camera;
 
 FRotator MyLookRotation(FVector lookAt, FVector upDirection)
 {
@@ -732,6 +732,87 @@ int Primitive::DeleteMany(TArray<int> acs)
 }
 
 
+int Primitive::PointLight(FVector position, FLinearColor color, float range, float intensity)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Creating a PointLight"));
+	Operation op = Operation();
+	op.op = TypeOP::PointLight;
+	op.pos = position;
+	op.radius = range;
+	op.height = intensity;
+	op.color = color;
+	if (parent > -1) {
+		op.parent = listActor[parent];
+	}
+
+	queue->Enqueue(op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse();
+	return listActor.Add(newActor);
+}
+
+
+int Primitive::SetView(FVector position, FVector target, float lens)
+{
+	Operation op = Operation();
+	op.op = TypeOP::Camera;
+	op.pos = position;
+	op.rot = UKismetMathLibrary::FindLookAtRotation(position, target);
+	op.scale = target;
+	op.radius = lens;
+
+	queue->Enqueue(op);
+
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	camera = Cast<ACameraActor>( r.getResponse());
+	return 0;
+}
+
+FVector Primitive::ViewCamera()
+{
+	if (camera != NULL) {
+		return FVector();
+	}
+	return  FVector();
+}
+
+
+FVector Primitive::ViewTarget()
+{
+	if (camera != NULL) {
+		return FVector();
+	}
+	return FVector();
+}
+
+float Primitive::ViewLens()
+{
+	if (camera != NULL) {
+		return 0;
+	}
+	return 0;
+}
+
+int Primitive::RenderView(int width, int height, FString name, FString path, int frame)
+{
+	Operation op = Operation();
+	op.op = TypeOP::Render;
+	op.param[0] = width;
+	op.param[1] = height;
+	op.param[2] = frame;
+	op.name = name;
+	op.path = path;
+	queue->Enqueue(op);
+
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	return 0;
+}
 
 /*
 int Primitive::CopyMesh(char* label, int actor, float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz, const char* mat)
