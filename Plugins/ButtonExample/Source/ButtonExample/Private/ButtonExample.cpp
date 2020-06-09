@@ -585,7 +585,7 @@ void CreateStaticMesh() {
 
 	// Create Package
 	FString pathPackage = FString("/Game");
-	FString absolutePathPackage = FPaths::GameContentDir();
+	FString absolutePathPackage = FPaths::ProjectContentDir();
 
 	FPackageName::RegisterMountPoint(*pathPackage, *absolutePathPackage);
 

@@ -24,7 +24,7 @@ TArray< AActor* > brushes;
 int parent = -1;
 int current_material = -1;
 
-TQueue<Operation>* queue = new TQueue<Operation, EQueueMode::Spsc>();
+TQueue<Operation>* requestQueue = new TQueue<Operation, EQueueMode::Spsc>();
 TQueue<Response>* responsequeue = new TQueue<Response, EQueueMode::Spsc>();
 //--------------------------------------------------------Placing Objects---------------------------------------------------------------------------//
 
@@ -139,17 +139,16 @@ void waitForRequest() {
 bool  Primitive::checkQueue(float delta, int SpF) {
 	int num = 0;
 	Operation fo;
-	FString pathPackage = FString("/Game/MyStaticMeshes");
-	FString absolutePathPackage = FPaths::GameContentDir() + "/MyStaticMeshes";
+
 
 
 
 	// Create Static Mesh
 
 
-	while (!(queue->IsEmpty()) ) {
+	while (!(requestQueue->IsEmpty()) ) {
 
-		queue->Dequeue(fo);
+		requestQueue->Dequeue(fo);
 
 		responsequeue->Enqueue(fo.execute(NULL));
 		
@@ -266,7 +265,7 @@ int Primitive::Sphere(float x, float y, float z, float radius)
 	op.op = TypeOP::Sphere;
 	op.pos = FVector(x, y, z);
 	op.radius = radius;
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -301,7 +300,7 @@ int Primitive::Cylinder(FVector bot, float radius, FVector top)
 	if (current_material > -1) {
 		op.mat = listMaterial[current_material];
 	}
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -324,7 +323,7 @@ int Primitive::Cone(float px, float py, float pz, float rx, float ry, float rz, 
 	if (current_material > -1) {
 		op.mat = listMaterial[current_material];
 	}
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -350,7 +349,7 @@ int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, floa
 		if (current_material > -1) {
 			op.mat = listMaterial[current_material];
 		}
-		queue->Enqueue(op);
+		requestQueue->Enqueue(op);
 		waitForRequest();
 		Response r;
 		responsequeue->Dequeue(r);
@@ -376,7 +375,7 @@ int Primitive::RightCuboid(FVector pos, FVector vx, FVector vz, float sx, float 
 	if (current_material > -1) {
 		op.mat = listMaterial[current_material];
 	}
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -396,7 +395,7 @@ int Primitive::Pyramid(TArray<FVector> ps, FVector q)
 	if (current_material > -1) {
 		op.mat = listMaterial[current_material];
 	}
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -416,7 +415,7 @@ int Primitive::PyramidFrustum(TArray<FVector> ps, TArray<FVector> q)
 	if (current_material > -1) {
 		op.mat = listMaterial[current_material];
 	}
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -446,7 +445,7 @@ int Primitive::PyramidFrustumWithMaterial(TArray<FVector> ps, TArray<FVector> q,
 		op.mat = listMaterial[material];
 	}
 
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -468,7 +467,7 @@ int Primitive::Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, floa
 	if (material > -1) {
 		op.mat = listMaterial[material];
 	}
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -486,7 +485,7 @@ int Primitive::Chair(FVector pos, float angle)
 	if (parent > -1) {
 		op.parent = listActor[parent];
 	}
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -501,7 +500,7 @@ int Primitive::DeleteAll()
 	op.op = TypeOP::Delete;
 	op.selectedActors = listActor;
 	listActor.Empty();
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -520,7 +519,7 @@ int Primitive::InstantiateBIMElement(int family, FVector pos, float angle)
 	if (parent > -1) {
 		op.parent = listActor[parent];
 	}
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -549,7 +548,7 @@ int Primitive::LoadMaterial(std::string path)
 	Operation op = Operation();
 	op.op = TypeOP::LoadMat;
 	op.path = FString(path.c_str());
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -567,7 +566,7 @@ int Primitive::LoadResource(std::string path)
 	Operation op = Operation();
 	op.op = TypeOP::LoadRes;
 	op.path = FString(path.c_str());
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -586,7 +585,7 @@ int Primitive::CreateBlockInstance(int mesh, FVector pos, FVector vx, FVector vy
 	if (parent > -1) {
 		op.parent = listActor[parent];
 	}
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -620,7 +619,7 @@ int Primitive::Panel(TArray<FVector> pts, FVector n, int material)
 	if (material > -1) {
 		op.mat = listMaterial[material];
 	}
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -642,7 +641,7 @@ int Primitive::BeamRectSection(FVector pos, FVector vx, FVector vy, float dx, fl
 	if (material > -1) {
 		op.mat = listMaterial[material];
 	}
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -665,7 +664,7 @@ int Primitive::BeamCircSection(FVector bot, float radius, FVector top, int mater
 	if (material > -1) {
 		op.mat = listMaterial[material];
 	}
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -685,7 +684,7 @@ int Primitive::Subtract(int ac1, int ac2) {
 	if (current_material > -1) {
 		op.mat = listMaterial[current_material];
 	}
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -706,7 +705,7 @@ int Primitive::Unite(int ac1, int ac2) {
 		op.mat = listMaterial[current_material];
 
 	}
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -724,7 +723,7 @@ int Primitive::DeleteMany(TArray<int> acs)
 		listActor[ac] = NULL;
 	}
 	
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -745,7 +744,7 @@ int Primitive::PointLight(FVector position, FLinearColor color, float range, flo
 		op.parent = listActor[parent];
 	}
 
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -763,7 +762,7 @@ int Primitive::SetView(FVector position, FVector target, float lens)
 	op.scale = target;
 	op.radius = lens;
 
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 
 	waitForRequest();
 	Response r;
@@ -806,7 +805,7 @@ int Primitive::RenderView(int width, int height, FString name, FString path, int
 	op.param[2] = frame;
 	op.name = name;
 	op.path = path;
-	queue->Enqueue(op);
+	requestQueue->Enqueue(op);
 
 	waitForRequest();
 	Response r;
