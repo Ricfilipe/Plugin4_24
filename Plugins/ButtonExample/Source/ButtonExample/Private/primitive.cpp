@@ -338,7 +338,7 @@ int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, floa
 
 
 		UE_LOG(LogTemp, Warning, TEXT("Creating a Cube"));
-		BoxCreation op = BoxCreation();
+		Operation op = Operation();
 		op.op = TypeOP::Cube;
 		op.scale = FVector(sx, sy, sz);
 		op.pos = pos;
@@ -770,7 +770,7 @@ int Primitive::PointLight(FVector position, FLinearColor color, float range, flo
 }
 
 
-int Primitive::SetView(FVector position, FVector target, float lens)
+int Primitive::SetView(FVector position, FVector target, float lens, float aperture)
 {
 	Operation op = Operation();
 	op.op = TypeOP::Camera;
@@ -778,7 +778,7 @@ int Primitive::SetView(FVector position, FVector target, float lens)
 	op.rot = UKismetMathLibrary::FindLookAtRotation(position, target);
 	op.scale = target;
 	op.radius = lens;
-
+	op.height = aperture;
 	requestQueue->Enqueue(op);
 
 	waitForRequest();
@@ -813,15 +813,15 @@ float Primitive::ViewLens()
 	return 0;
 }
 
-int Primitive::RenderView(int width, int height, FString name, FString path, int frame)
+int Primitive::RenderView(int width, int height, std::string name, std::string path, int frame)
 {
 	Operation op = Operation();
 	op.op = TypeOP::Render;
 	op.param[0] = width;
 	op.param[1] = height;
 	op.param[2] = frame;
-	op.name = name;
-	op.path = path;
+	op.name = FString(name.c_str());
+	op.path = FString(path.c_str());
 	requestQueue->Enqueue(op);
 
 	waitForRequest();

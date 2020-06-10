@@ -128,14 +128,14 @@ namespace Primitive {
 
 	int PointLight(FVector position, FLinearColor color, float range, float intensity);
 
-	int SetView(FVector position, FVector target, float lens);
+	int SetView(FVector position, FVector target, float lens, float aperture);
    
 	FVector ViewCamera();
 
 	FVector ViewTarget();
 
 	float ViewLens();
-	int RenderView(int width, int height, FString name, FString path, int frame);
+	int RenderView(int width, int height, std::string name, std::string path, int frame);
 }
 
 

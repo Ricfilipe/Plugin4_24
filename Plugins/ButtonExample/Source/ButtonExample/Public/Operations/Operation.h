@@ -39,7 +39,7 @@ class BUTTONEXAMPLE_API Operation
 {
 
 public:
-
+	Operation();
 	TypeOP op;
 
 	//Transform 
@@ -78,9 +78,11 @@ public:
 	TArray<AActor*> selectedActors;
 
 	//render
-	UAutomatedLevelSequenceCapture* MovieSceneCapture;
+
+
 	FString name;
 	int param[3];
+
 
 	virtual Response execute(UPackage* Package);
 protected:

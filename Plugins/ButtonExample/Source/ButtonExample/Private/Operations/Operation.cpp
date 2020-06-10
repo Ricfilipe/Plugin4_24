@@ -54,7 +54,7 @@
 #include "ImageWriteTypes.h"
 
 
-#define LOCTEXT_NAMESPACE "FButtonExampleModule"
+#define LOCTEXT_NAMESPACE "Operations"
  int count_Pyramid;
 
 
@@ -65,6 +65,8 @@
  FString filmName;
  ULevelSequence* current = NULL;
 
+	
+ UAutomatedLevelSequenceCapture* movieSceneCapture;
 
  FMovieSceneFloatChannel* posX;
  FMovieSceneFloatChannel* posY;
@@ -87,7 +89,11 @@
  }
 
 
-Response Operation::execute(UPackage* Package)
+ Operation::Operation()
+ {
+ }
+
+ Response Operation::execute(UPackage* Package)
 {
 
 	UStaticMesh* loaded_mesh = NULL;
@@ -1420,6 +1426,8 @@ AActor* Operation::CreateUpdateCamera()
 	nextFramerotation = rot;
 	nextFramePosition = pos;
 	nextFrameCamera[0] = radius;
+	nextFrameCamera[1] = height;
+	nextFrameCamera[2] = FVector::Distance(pos, scale);
 	GCurrentLevelEditingViewportClient->SetViewLocation(pos);
 	GCurrentLevelEditingViewportClient->SetLookAtLocation(scale);
 
@@ -1438,53 +1446,59 @@ AActor* Operation::CreateRender()
 		AActor* newActorCreated = GEditor->AddActor(currentLevel, staticMeshClass, objectTrasform, true, RF_Public | RF_Standalone | RF_Transactional);
 
 		realActor = Cast<ALevelSequenceActor>(newActorCreated);
-		realActor->SetActorLabel("LevelSequence");
+		realActor->SetActorLabel(name);
 		auto original = LoadObject<ULevelSequence>(nullptr, *FString("/Game/MyStaticMeshes/LevelSequence/ExampleSequence.ExampleSequence"));
 		current = CreateLevelSeq(filmName, FString("/Game/MyStaticMeshes/LevelSequence"), original);
 		realActor->SetSequence(current);
 		TArray<FMovieSceneBinding> binds = current->GetMovieScene()->GetBindings();
 
-		auto transformTrack = Cast<UMovieScene3DTransformTrack>(binds[0].GetTracks()[1]);
-		posX = transformTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[0];
-		posY = transformTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[1];
-		posZ = transformTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[2];
+		auto transformTrack = Cast<UMovieScene3DTransformTrack>(binds[0].GetTracks()[0]);
+		posX = transformTrack->GetAllSections()[0]->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[0];
+		posY = transformTrack->GetAllSections()[0]->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[1];
+		posZ = transformTrack->GetAllSections()[0]->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[2];
 
-		rotX = transformTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[3];
-		rotY = transformTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[4];
-		rotZ = transformTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[5];
+		rotX = transformTrack->GetAllSections()[0]->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[3];
+		rotY = transformTrack->GetAllSections()[0]->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[4];
+		rotZ = transformTrack->GetAllSections()[0]->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[5];
+
 
 
 		auto focusTrack = Cast<UMovieSceneFloatTrack>(binds[1].GetTracks()[0]);
-		focus = focusTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[0];
+		focus = focusTrack->GetAllSections()[0]->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[0];
 		auto focalTrack = Cast<UMovieSceneFloatTrack>(binds[1].GetTracks()[1]);
-		focal = focalTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[0];
+		focal = focalTrack->GetAllSections()[0]->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[0];
 		auto apertureTrack = Cast<UMovieSceneFloatTrack>(binds[1].GetTracks()[2]);
-		aperture = apertureTrack->GetSectionToKey()->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[0];
+		aperture = apertureTrack->GetAllSections()[0]->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[0];
 
 	}
 	current->GetMovieScene()->SetSelectionRange(TRange<FFrameNumber>(FFrameNumber(param[3])));
-	posX->AddConstantKey(FFrameNumber(param[3]), nextFramePosition.X);
-	posY->AddConstantKey(FFrameNumber(param[3]), nextFramePosition.Y);
-	posZ->AddConstantKey(FFrameNumber(param[3]), nextFramePosition.Z);
+	FFrameNumber currentFrame = FFrameNumber();
+	currentFrame.Value = param[2];
+	posX->AddConstantKey(currentFrame, nextFramePosition.X);
+	posY->AddConstantKey(currentFrame, nextFramePosition.Y);
+	posZ->AddConstantKey(currentFrame, nextFramePosition.Z);
 
-	rotX->AddConstantKey(FFrameNumber(param[3]), nextFramerotation.Euler().X);
-	rotY->AddConstantKey(FFrameNumber(param[3]), nextFramerotation.Euler().Y);
-	rotZ->AddConstantKey(FFrameNumber(param[3]), nextFramerotation.Euler().Z);
+	rotX->AddConstantKey(currentFrame, nextFramerotation.Euler().X);
+	rotY->AddConstantKey(currentFrame, nextFramerotation.Euler().Y);
+	rotZ->AddConstantKey(currentFrame, nextFramerotation.Euler().Z);
 
-	focus->AddConstantKey(FFrameNumber(param[3]), nextFrameCamera[0]);
+	focus->AddConstantKey(currentFrame, nextFrameCamera[0]);
+	focal->AddConstantKey(currentFrame, nextFrameCamera[1]);
+	aperture->AddConstantKey(currentFrame, nextFrameCamera[2]);
 
 
-	MovieSceneCapture = NewObject<UAutomatedLevelSequenceCapture>(GetTransientPackage(), UAutomatedLevelSequenceCapture::StaticClass(), FName("MovieCapture"), RF_Transient);
-	MovieSceneCapture->ImageCaptureProtocolType = UImageSequenceProtocol_PNG::StaticClass();
-	UImageSequenceProtocol_PNG* ImageCaptureProtocol = NewObject<UImageSequenceProtocol_PNG>(MovieSceneCapture, UImageSequenceProtocol_PNG::StaticClass(), FName("UUserDefinedImageCaptureProtocol"));
-	MovieSceneCapture->ImageCaptureProtocol = ImageCaptureProtocol;
-	MovieSceneCapture->LoadFromConfig();
 
-	MovieSceneCapture->LevelSequenceAsset = current->GetMovieScene()->GetOuter()->GetPathName();
+	movieSceneCapture = NewObject<UAutomatedLevelSequenceCapture>(GetTransientPackage(), UAutomatedLevelSequenceCapture::StaticClass(), FName("MovieCapture"), RF_Transient);
+	movieSceneCapture->ImageCaptureProtocolType = UImageSequenceProtocol_PNG::StaticClass();
+	UImageSequenceProtocol_PNG* ImageCaptureProtocol = NewObject<UImageSequenceProtocol_PNG>(movieSceneCapture, UImageSequenceProtocol_PNG::StaticClass(), FName("UUserDefinedImageCaptureProtocol"));
+	movieSceneCapture->ImageCaptureProtocol = ImageCaptureProtocol;
+	movieSceneCapture->LoadFromConfig();
+
+	movieSceneCapture->LevelSequenceAsset = current->GetMovieScene()->GetOuter()->GetPathName();
 	ULevelEditorPlaySettings* PlayInEditorSettings = GetMutableDefault<ULevelEditorPlaySettings>();
 
 
-	const FMovieSceneCaptureSettings& Settings = MovieSceneCapture->GetSettings();
+	FMovieSceneCaptureSettings Settings = movieSceneCapture->GetSettings();
 
 	PlayInEditorSettings->NewWindowWidth = Settings.Resolution.ResX;
 	PlayInEditorSettings->NewWindowHeight = Settings.Resolution.ResY;
@@ -1504,7 +1518,7 @@ AActor* Operation::CreateRender()
 		.MaxHeight(Settings.Resolution.ResY)
 		.SizingRule(ESizingRule::FixedSize);
 
-	FSlateApplication::Get().AddWindow(CustomWindow);
+	
 
 	PlayInEditorSettings->CustomPIEWindow = CustomWindow;
 
@@ -1513,7 +1527,7 @@ AActor* Operation::CreateRender()
 	PlayInEditorSettings->ShowMouseControlLabel = false;
 	PlayInEditorSettings->ViewportGetsHMDControl = false;
 	PlayInEditorSettings->ShouldMinimizeEditorOnVRPIE = true;
-	PlayInEditorSettings->EnableGameSound = MovieSceneCapture->AudioCaptureProtocolType != UNullAudioCaptureProtocol::StaticClass();
+	PlayInEditorSettings->EnableGameSound = movieSceneCapture->AudioCaptureProtocolType != UNullAudioCaptureProtocol::StaticClass();
 	PlayInEditorSettings->bOnlyLoadVisibleLevelsInPIE = false;
 	PlayInEditorSettings->bPreferToStreamLevelsInPIE = false;
 	PlayInEditorSettings->PIEAlwaysOnTop = false;
@@ -1526,21 +1540,25 @@ AActor* Operation::CreateRender()
 	PlayInEditorSettings->SetPlayNetDedicated(false);
 	PlayInEditorSettings->SetPlayNumberOfClients(1);
 
-
+	FString* directory = new FString;
+	FString* output = new FString;
+	path.Split(FString("\\"), directory, output, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+	*directory= directory->Replace(*FString("\\"), *FString("/"));
 	FFrameRate DisplayRate = FFrameRate();
-	MovieSceneCapture->Settings.bUseCustomFrameRate = true;
-
-	MovieSceneCapture->Settings.FrameRate = DisplayRate;
-	MovieSceneCapture->Settings.ZeroPadFrameNumbers = 0;
-	MovieSceneCapture->Settings.bUseRelativeFrameNumbers = false;
+	movieSceneCapture->Settings.bUseCustomFrameRate = true;
+	movieSceneCapture->Settings.OutputFormat = *output;
+	movieSceneCapture->Settings.OutputDirectory.Path = *directory;
+	movieSceneCapture->Settings.FrameRate = DisplayRate;
+	movieSceneCapture->Settings.ZeroPadFrameNumbers = 0;
+	movieSceneCapture->Settings.bUseRelativeFrameNumbers = false;
 
 	FFrameNumber StartFrame = FFrameNumber(0);
 	FFrameNumber EndFrame = FFrameNumber(1);
-	MovieSceneCapture->SetFrameOverrides(StartFrame, EndFrame);
+	movieSceneCapture->SetFrameOverrides(StartFrame, EndFrame);
 
-	MovieSceneCapture->AddToRoot();
-	MovieSceneCapture->OnCaptureFinished().AddRaw(this, &Operation::OnLevelSequenceFinished);
-	MovieSceneCapture->Settings.Resolution = FCaptureResolution(param[0], param[1]);
+	movieSceneCapture->AddToRoot();
+	movieSceneCapture->OnCaptureFinished().AddRaw(this, &Operation::OnLevelSequenceFinished);
+	movieSceneCapture->Settings.Resolution = FCaptureResolution(param[0], param[1]);
 
 
 	UGameViewportClient::OnViewportCreated().AddRaw(this, &Operation::OnPIEViewportStarted);
@@ -1562,10 +1580,10 @@ void Operation::OnLevelSequenceFinished() {
 
 	FEditorDelegates::EndPIE.RemoveAll(this);
 	UGameViewportClient::OnViewportCreated().RemoveAll(this);
-	MovieSceneCapture->OnCaptureFinished().RemoveAll(this);
+	movieSceneCapture->OnCaptureFinished().RemoveAll(this);
 
-	MovieSceneCapture->Close();
-	MovieSceneCapture->RemoveFromRoot();
+	movieSceneCapture->Close();
+	movieSceneCapture->RemoveFromRoot();
 }
 
 void Operation::OnPIEViewportStarted() {
@@ -1581,8 +1599,8 @@ void Operation::OnPIEViewportStarted() {
 
 				TSharedPtr<SWindow> Window = SlatePlayInEditorSession->SlatePlayInEditorWindow.Pin();
 
-				const FMovieSceneCaptureSettings& Settings = MovieSceneCapture->GetSettings();
-
+		
+				FMovieSceneCaptureSettings Settings = movieSceneCapture->GetSettings();
 
 				SlatePlayInEditorSession->SlatePlayInEditorWindowViewport.Get()->SetViewportSize(Settings.Resolution.ResX, Settings.Resolution.ResY);
 
@@ -1603,10 +1621,10 @@ void Operation::OnPIEViewportStarted() {
 				FVector2D PreviewWindowPosition(50, 50);
 				Window->ReshapeWindow(PreviewWindowPosition, PreviewWindowSize);
 
-				if (MovieSceneCapture->Settings.GameModeOverride != nullptr)
+				if (movieSceneCapture->Settings.GameModeOverride != nullptr)
 				{
 
-					CapturingFromWorld->GetWorldSettings()->DefaultGameMode = MovieSceneCapture->Settings.GameModeOverride;
+					CapturingFromWorld->GetWorldSettings()->DefaultGameMode = movieSceneCapture->Settings.GameModeOverride;
 				}
 
 				auto CachedEngineShowFlags = SlatePlayInEditorSession->SlatePlayInEditorWindowViewport->GetClient()->GetEngineShowFlags();
@@ -1615,11 +1633,11 @@ void Operation::OnPIEViewportStarted() {
 					auto CachedPathTracingMode = CachedEngineShowFlags->PathTracing;
 					CachedEngineShowFlags->SetPathTracing(true);
 				}
-				MovieSceneCapture->Initialize(SlatePlayInEditorSession->SlatePlayInEditorWindowViewport, Context.PIEInstance);
+				movieSceneCapture->Initialize(SlatePlayInEditorSession->SlatePlayInEditorWindowViewport, Context.PIEInstance);
 
 			}
 
-			FString CapturePath = MovieSceneCapture->ResolveFileFormat(MovieSceneCapture->Settings.OutputDirectory.Path, FFrameMetrics());
+			FString CapturePath = movieSceneCapture->ResolveFileFormat(movieSceneCapture->Settings.OutputDirectory.Path, FFrameMetrics());
 			UE_LOG(LogTemp, Warning, TEXT("%s"), *(CapturePath));
 			return;
 		}
