@@ -147,7 +147,7 @@ public:
        
   }
 
-  FVector Read(Type<FLinearColor>) {
+  FLinearColor Read(Type<FLinearColor>) {
       return FLinearColor(Read<float>(), Read<float>(), Read<float>(), 0);
 
   }

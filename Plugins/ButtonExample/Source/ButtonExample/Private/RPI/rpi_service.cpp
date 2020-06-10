@@ -39,6 +39,7 @@ RpiService::RpiService() {
     ADD_FUNCTION(Primitive::ViewCamera);
     ADD_FUNCTION(Primitive::ViewLens);
     ADD_FUNCTION(Primitive::ViewTarget);
+    ADD_FUNCTION(Primitive::RenderView);
 	UE_LOG(LogThread, Log, TEXT("Created Thread"));
 }
 

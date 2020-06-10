@@ -20,7 +20,7 @@ astana() =
     #with(default_beam_family, astana_beam_family) do
     begin
         delete_all_shapes()
-        @with_layer "Mid Block Slabs" mid_block_slabs(astana_center_p)
+        #@with_layer "Mid Block Slabs" mid_block_slabs(astana_center_p)
         #@with_layer "Out Block Out Slabs" out_block_out_slabs(astana_center_p)
         #@with_layer "Out Blocks in Slabs" out_block_in_slabs(astana_center_p, 4pi, 0, 0)
         # @with_layer "Spiral Steps" spiral_steps(astana_center_p)       #ALL AROUND SPIRAL STAIRS
@@ -31,7 +31,7 @@ astana() =
         #@with_layer "Out Columns" out_columns(astana_center_p)
     #WALLS
         #@with_layer "Block Walls" book_walls(astana_center_p)
-         @with_layer "Cores" cores(astana_center_p)               #WALLS & DOORS & ELEVATORS & TOP SLABS
+         #@with_layer "Cores" cores(astana_center_p)               #WALLS & DOORS & ELEVATORS & TOP SLABS
             # AutoCAD -- Error
         #@with_layer "Glass Walls" glass_walls(astana_center_p)   #CURTAIN WALL
     #STEEL FAÇADE

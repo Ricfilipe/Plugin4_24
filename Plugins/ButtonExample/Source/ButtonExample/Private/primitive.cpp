@@ -459,7 +459,20 @@ int Primitive::Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, floa
 	Operation op = Operation();
 	op.op = TypeOP::Slab;
 	op.height = h*100;
+	op.pos = contour[0];
 	op.base = contour;
+
+	for (FVector v : op.base) {
+		v = v - contour[0];
+	}
+
+
+	for (TArray<FVector> vectors : op.holes) {
+		for (FVector v :vectors) {
+			v = v - contour[0];
+		}
+	}
+
 	op.holes = holes;
 	if (parent > -1) {
 		op.parent = listActor[parent];
@@ -612,6 +625,10 @@ int Primitive::Panel(TArray<FVector> pts, FVector n, int material)
 	op.op = TypeOP::Panel;
 	op.topPoint = n;
 	op.base = pts;
+	op.pos = pts[0];
+	for (FVector v : op.base) {
+		v = v - pts[0];
+	}
 
 	if (parent > -1) {
 		op.parent = listActor[parent];

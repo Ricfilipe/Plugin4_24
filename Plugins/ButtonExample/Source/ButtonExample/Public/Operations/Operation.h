@@ -7,6 +7,7 @@
 #include "MovieSceneTrack.h"
 #include "Sections/MovieSceneCameraCutSection.h"
 #include "Operations/Response.h"
+#include "AutomatedLevelSequenceCapture.h"
 /**
  * 
  */
@@ -77,6 +78,7 @@ public:
 	TArray<AActor*> selectedActors;
 
 	//render
+	UAutomatedLevelSequenceCapture* MovieSceneCapture;
 	FString name;
 	int param[3];
 
@@ -112,6 +114,7 @@ protected:
 	AActor* CreateUpdateCamera();
 	AActor* CreateRender();
 
+
 	/*Load Files*/
 	UMaterialInterface* LoadMaterial();
 	UStaticMesh* LoadResources();
@@ -123,6 +126,10 @@ protected:
 	AActor* CreateAddition();
 
 	/*Auxiliar Funcions*/
+
+
+	void OnLevelSequenceFinished();
+	void OnPIEViewportStarted();
 
 	AActor* PlaceStaticMesh(UStaticMesh* mesh);
 	UStaticMesh* CreateMesh(FString name, TArray<FVector> vertices, TArray<Face> faces, int size);
