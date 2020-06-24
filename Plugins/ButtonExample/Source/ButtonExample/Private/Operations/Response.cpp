@@ -1,19 +1,11 @@
 #include "Operations/Response.h"
 
 
-Response::Response(AActor* resp)
+
+
+Response::Response(UObject* resp)
 {
 	_resp = resp;
-}
-
-Response::Response(UMaterialInterface* resp)
-{
-	_mat = resp;
-}
-
-Response::Response(UStaticMesh* resp)
-{
-	_mesh = resp;
 }
 
 Response::Response()
@@ -23,19 +15,6 @@ Response::Response()
 
 
 
-AActor* Response::getResponse()
-{
-	return _resp;
-}
 
-UMaterialInterface* Response::getMat()
-{
-	return _mat;
-}
-
-UStaticMesh* Response::getMesh()
-{
-	return _mesh;
-}
 
 

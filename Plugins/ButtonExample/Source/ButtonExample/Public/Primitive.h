@@ -21,43 +21,24 @@ namespace Primitive {
 
 	int counter = 0;
 
+	// Auxiliars for Converting fields
 
+	UMaterialInterface* intToUMaterial(int index);
+	UStaticMesh* intToUStaticMesh(int index);
+	AActor* intToAActor(int index);
 
-
-	//place StaticMEsh
-
-	int PlacingStaticMesh(char * label, char * myStaticMesh, FVector objectPosition, FRotator objectRotation, FVector objectScale, const char * mat);
-
-	int PlacingStaticMesh(char* label, int32 actor, FVector objectPosition, FRotator objectRotation, FVector objectScale, const char* mat);
+	//Queue
 
 	bool checkQueue(float delta,int SpF);
 
-	//Brushes
-
-
-
-	/*
-	int32 spawnCube(FVector objectPosition, FRotator objectRotation, FVector objectScale);
-
-	int32 spawnCube(FVector objectPosition, FRotator objectRotation, FVector objectScale, bool addictive = true);
-
-	int32 spawnCube(FVector objectPosition, FRotator objectRotation, FVector objectScale, bool addictive, bool hollow);
-	*/
 
 	//Creating StaticMesh From Brushes
 
 	AActor* ConvertToStaticMesh();
-	void spawnCustom(FVector objectPosition, FRotator objectRotation, float height, TArray<FVector> vertices, int size, bool addictive);
+
 	AActor* ConvertToStaticMesh(FString name);
 	AActor* ConvertToStaticMesh(const TArray<AActor*> bs, FString name);
 	AActor* ConvertToStaticMesh( const TArray<AActor*> bs);
-
-	//BIM constructions
-		//BEAM
-
-
-		//Slabs
-
 
 	void cleanBrushes();
 
@@ -69,64 +50,70 @@ namespace Primitive {
 
 	//API KHEPRI
 
-	int Sphere(float x, float y, float z, float radius);
-
-	int StaticMesh(char* label, char* myStaticMesh, float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz, const char* mat);
-
-	int Cylinder(FVector top, float radius, FVector bot);
-
-	int Cone(float px, float py, float pz, float rx, float ry, float rz, float height, float radius);
+	//Static Mesh
 
 	int  Box(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz);
 
 	int  RightCuboid(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz, float angle);
 
+	int Cylinder(FVector top, float radius, FVector bot);
+
+	int BeamRectSection(FVector position, FVector vx, FVector vy, float dx, float dy, float dz, float angle, UMaterialInterface* material);
+
+	int BeamCircSection(FVector bot, float radius, FVector top, UMaterialInterface* material);
+
 	int  Pyramid(TArray<FVector> ps, FVector q);
 
 	int  PyramidFrustum(TArray<FVector> ps, TArray<FVector> q);
 
-	int  PyramidFrustumWithMaterial(TArray<FVector> ps, TArray<FVector> q, int material);
+	int Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, float h, UMaterialInterface* material);
 
-	int Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, float h, int material);
+	 int Panel(TArray<FVector>  pts, FVector n, UMaterialInterface* material);
 
-	 int CurrentParent();
+	int InstantiateBIMElement(UStaticMesh* family, FVector pos, float angle);
 
-	 int SetCurrentParent(int newParent);
+	int CreateBlockInstance(UStaticMesh* mesh, FVector position, FVector vx, FVector vy, float scale);
 
-	 int LoadMaterial(std::string path);
+	// Actor Properties
 
-	 int LoadResource(std::string path);
+	int CurrentMaterial();
 
-	 int CreateBlockInstance(int mesh, FVector position, FVector vx, FVector vy, float scale);
+	int SetCurrentMaterial(int material);
 
-	 int CurrentMaterial();
+	int CurrentParent();
 
-	 int SetCurrentMaterial(int material);
-
-	 int Panel(TArray<FVector>  pts, FVector n, int material);
-
-	 int BeamRectSection(FVector position, FVector vx, FVector vy, float dx, float dy, float dz, float angle, int material);
-
-	 int BeamCircSection(FVector bot, float radius, FVector top, int material);
-
-	int CopyMesh(char* label, int actor, float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz, const char* mat);
-
-	int Chair(FVector pos, float angle);
-
-	int DeleteAll();
-	
-	int InstantiateBIMElement(int family, FVector pos, float angle);
-
-	int Subtract(int ac1, int ac2);
-
-	int Unite(int ac1, int ac2);
-
-	int DeleteMany(TArray<int> acs);
+	int SetCurrentParent(int newParent);
 
 
-	int DeleteMany(TArray<int> acs);
+	//LIGHT
 
 	int PointLight(FVector position, FLinearColor color, float range, float intensity);
+
+	int Spotlight(FVector position, FVector dir, FLinearColor color, float range, float intensity, float hotspot, float falloff);
+
+	//Boolean Operations
+
+	int Subtract(AActor* ac1, AActor* ac2);
+
+	int Unite(AActor* ac1, AActor* ac2);
+
+
+	//Delete
+
+	int DeleteMany(TArray<AActor*> acs);
+
+	int DeleteAll();
+
+	//LOAD
+
+	int LoadMaterial(std::string path);
+
+	int LoadResource(std::string path);
+
+
+
+
+	//RENDER
 
 	int SetView(FVector position, FVector target, float lens, float aperture);
    
@@ -135,7 +122,9 @@ namespace Primitive {
 	FVector ViewTarget();
 
 	float ViewLens();
+
 	int RenderView(int width, int height, std::string name, std::string path, int frame);
+
 }
 
 

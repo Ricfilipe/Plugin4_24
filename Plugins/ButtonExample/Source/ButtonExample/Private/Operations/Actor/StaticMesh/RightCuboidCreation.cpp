@@ -2,25 +2,23 @@
 
 
 #include "RightCuboidCreation.h"
-#include "Operations/BoxCreation.h"
-#include "Components/StaticMeshComponent.h"
-#include "Builders/TetrahedronBuilder.h"
-#include "UObject/UObjectGlobals.h"
-#include "Components/StaticMeshComponent.h"
-#include "Engine/StaticMeshActor.h"
-#include "Engine/World.h"
-#include "LevelEditor.h"
-#include "Editor.h"
-#include "GameFramework/Actor.h"
-#include "EditorModeManager.h"
-#include "UObject/ConstructorHelpers.h"
-#include "Primitive.h"
-#include "CustomBrushes/KhepriRightCuboid.h"
 
-
-Response RightCuboidCreation::execute(UPackage* Package)
+RightCuboidCreation::RightCuboidCreation(FVector position, FRotator rotation, FVector scale, AActor* parent, UMaterialInterface* mat) :
+	ActorStaticMeshCreation(position, rotation, scale, parent, mat, FString("/Game/MyStaticMeshes/RightCuboid" +
+		FString::SanitizeFloat(scale.X) + ":" +
+		FString::SanitizeFloat(scale.Y) + ":" +
+		FString::SanitizeFloat(scale.Z)))
 {
-	UE_LOG(LogTemp, Warning, TEXT("Polymorphism"));
+}
+
+Response RightCuboidCreation::execute()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Creating Cuboid with POLYMORPHISM"));
+	Response res = ActorStaticMeshCreation::execute();
+	if (res.getResponse<AActor>() != NULL) {
+		return res;
+	}
+
 	TArray<FVector> Vertices;
 	TArray<Face> Faces;
 
@@ -57,10 +55,12 @@ Response RightCuboidCreation::execute(UPackage* Package)
 		Faces.Add(oneFace);
 	}
 
-	return PlaceStaticMesh(CreateMesh(FString("RightCuboid" +
+	return Response(PlaceStaticMesh(CreateMesh(FString("RightCuboid" +
 		FString::SanitizeFloat(scale.X) + ":" +
 		FString::SanitizeFloat(scale.Y) + ":" +
 		FString::SanitizeFloat(scale.Z)
-	), Vertices, Faces, Vertices.Num()));
+	), Vertices, Faces, Vertices.Num())));
+
 
 }
+

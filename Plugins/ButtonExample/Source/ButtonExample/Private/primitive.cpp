@@ -13,9 +13,23 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "MaterialExpressionIO.h"
 #include "Engine/Polys.h"
-#include "Operations/BoxCreation.h"
-#include "Operations/RightCuboidCreation.h"
+#include <Operations\Actor\StaticMesh\BoxCreation.h>
+#include "Operations/Actor/StaticMesh/CylinderCreation.h"
+#include <Operations\Actor\StaticMesh\RightCuboidCreation.h>
 #include <Runtime\Engine\Classes\Kismet\KismetMathLibrary.h>
+#include <Operations\Actor\StaticMesh\PyramidCreation.h>
+#include <Operations\Actor\StaticMesh\PyramidFrustumCreation.h>
+#include <Operations\Actor\StaticMesh\SlabCreation.h>
+#include <Operations\ActorOperation\DeleteCreation.h>
+#include <Operations\Actor\StaticMesh\StaticMeshCreation.h>
+#include <Operations\Actor\StaticMesh\PanelCreation.h>
+#include <Operations\ActorOperation\SubtractionCreation.h>
+#include <Operations\ActorOperation\AdditionCreation.h>
+#include <Operations\Actor\Light\PointLightCreation.h>
+#include <Operations\Actor\Render\RenderCreation.h>
+#include <Operations\Actor\Light\SpotlightCreation.h>
+#include <Operations\Load\LoadCreation.h>
+#include <Operations\Actor\Render\ChangeViewOperation.h>
 
 
 int cube = 0, cylinder = 0, sphere = 0, object = 0;
@@ -24,7 +38,12 @@ TArray< AActor* > brushes;
 int parent = -1;
 int current_material = -1;
 
-TQueue<Operation>* requestQueue = new TQueue<Operation, EQueueMode::Spsc>();
+FVector nextFramePosition;
+FRotator nextFramerotation;
+float nextFrameCamera[3];
+
+
+TQueue<Operation*>* requestQueue = new TQueue<Operation*, EQueueMode::Spsc>();
 TQueue<Response>* responsequeue = new TQueue<Response, EQueueMode::Spsc>();
 //--------------------------------------------------------Placing Objects---------------------------------------------------------------------------//
 
@@ -136,9 +155,36 @@ void waitForRequest() {
 
 
 
+UMaterialInterface* Primitive::intToUMaterial(int index)
+{
+	if (index > -1) {
+		return listMaterial[index];
+	}
+
+	return NULL;
+}
+
+UStaticMesh* Primitive::intToUStaticMesh(int index)
+{
+	if (index > -1) {
+		return listMesh[index];
+	}
+
+	return NULL;
+}
+
+AActor* Primitive::intToAActor(int index)
+{
+	if (index > -1) {
+		return listActor[index];
+	}
+
+	return NULL;
+}
+
 bool  Primitive::checkQueue(float delta, int SpF) {
 	int num = 0;
-	Operation fo;
+	Operation* fo;
 
 
 
@@ -150,9 +196,10 @@ bool  Primitive::checkQueue(float delta, int SpF) {
 
 		requestQueue->Dequeue(fo);
 
-		responsequeue->Enqueue(fo.execute(NULL));
+		responsequeue->Enqueue(fo->execute());
 		
 		FPlatformProcess::Sleep(0.001f);
+	
 	}
 	return true;
 }
@@ -258,20 +305,7 @@ TArray<AActor*> Primitive::getArray() {
 
 
 
-int Primitive::Sphere(float x, float y, float z, float radius)
-{
-	UE_LOG(LogTemp, Warning, TEXT("Creating a Sphere"));
-	Operation op = Operation();
-	op.op = TypeOP::Sphere;
-	op.pos = FVector(x, y, z);
-	op.radius = radius;
-	requestQueue->Enqueue(op);
-	waitForRequest();
-	Response r;
-	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
-	return listActor.Add(newActor);
-}
+
 
 /*
 int Primitive::StaticMesh(char* label, char* myStaticMesh, float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz, const char* mat)
@@ -288,48 +322,25 @@ int Primitive::Cylinder(FVector bot, float radius, FVector top)
 {
 	
 	UE_LOG(LogTemp, Warning, TEXT("Creating a Cylinder"));
-	Operation op = Operation();
-	op.op = TypeOP::Cylinder;
-	op.pos = bot;
-	op.radius = radius;
-	op.height = FVector::Dist(top,bot);
-	op.rot = FQuat::FindBetween(FVector(0,0,1),top-bot).Rotator();
+	
+	AActor* par = NULL;
+	UMaterialInterface* mat = NULL;
 	if (parent > -1) {
-		op.parent = listActor[parent];
+		par = listActor[parent];
 	}
 	if (current_material > -1) {
-		op.mat = listMaterial[current_material];
+		mat = listMaterial[current_material];
 	}
-	requestQueue->Enqueue(op);
+	CylinderCreation op = CylinderCreation(bot, FQuat::FindBetween(FVector(0, 0, 1), top - bot).Rotator(), radius, FVector::Dist(top, bot),par,mat);
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
+	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
 }
 
-int Primitive::Cone(float px, float py, float pz, float rx, float ry, float rz, float height, float radius)
-{
-	UE_LOG(LogTemp, Warning, TEXT("Creating a Cone"));
-	Operation op = Operation();
-	op.op = TypeOP::Cone;
-	op.pos = FVector(px, py, pz);
-	op.rot = FRotator(rx, ry, rz);
-	op.radius = radius;
-	op.height = height;
-	if (parent > -1) {
-		op.parent = listActor[parent];
-	}
-	if (current_material > -1) {
-		op.mat = listMaterial[current_material];
-	}
-	requestQueue->Enqueue(op);
-	waitForRequest();
-	Response r;
-	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
-	return listActor.Add(newActor);
-}
+
 
 int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz)
 {
@@ -338,24 +349,23 @@ int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, floa
 
 
 		UE_LOG(LogTemp, Warning, TEXT("Creating a Cube"));
-		Operation op = Operation();
-		op.op = TypeOP::Cube;
-		op.scale = FVector(sx, sy, sz);
-		op.pos = pos;
-		op.rot = MyLookRotation(vx, vy);
+
+		AActor* par = NULL;
+		UMaterialInterface* mat = NULL;
 		if (parent > -1) {
-			op.parent = listActor[parent];
+			par = listActor[parent];
 		}
 		if (current_material > -1) {
-			op.mat = listMaterial[current_material];
+			mat = listMaterial[current_material];
 		}
-		requestQueue->Enqueue(op);
+		BoxCreation op = BoxCreation(pos, MyLookRotation(vx, vy), FVector(sx,sy,sz),par,mat);
+		requestQueue->Enqueue(&op);
 		waitForRequest();
 		Response r;
 		responsequeue->Dequeue(r);
-		AActor* newActor = r.getResponse();
+		AActor* newActor = r.getResponse<AActor>();
 		return listActor.Add(newActor);
-	
+		
 }
 
 
@@ -363,180 +373,133 @@ int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, floa
 int Primitive::RightCuboid(FVector pos, FVector vx, FVector vz, float sx, float sy, float sz, float angle)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a RightCuboid"));
-	RightCuboidCreation op = RightCuboidCreation();
-	op.op = TypeOP::RightCuboid;
-	op.scale = FVector(sx, sy, sz);
-	op.pos = pos;
 
-	op.rot = ( MyLookRotation(vx, vz).Quaternion() * FQuat::MakeFromEuler(FVector(0, 0, FMath::RadiansToDegrees(angle)))).Rotator();
+	AActor* par = NULL;
+	UMaterialInterface* mat = NULL;
 	if (parent > -1) {
-		op.parent = listActor[parent];
-	}	
-	if (current_material > -1) {
-		op.mat = listMaterial[current_material];
+		par = listActor[parent];
 	}
-	requestQueue->Enqueue(op);
+	if (current_material > -1) {
+		mat = listMaterial[current_material];
+	}
+	RightCuboidCreation op = RightCuboidCreation(pos, (MyLookRotation(vx, vz).Quaternion() * FQuat::MakeFromEuler(FVector(0, 0, FMath::RadiansToDegrees(angle)))).Rotator(),FVector(sx,sy,sz),par,mat);
+
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
+	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
+	
 }
 int Primitive::Pyramid(TArray<FVector> ps, FVector q)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a Pyramid"));
-	Operation op = Operation();
-	op.op = TypeOP::Pyramid;
-	op.topPoint = q;
-	op.base = ps;
+
+	AActor* par = NULL;
+	UMaterialInterface* mat = NULL;
+
 	if (parent > -1) {
-		op.parent = listActor[parent];
+		par = listActor[parent];
 	}
 	if (current_material > -1) {
-		op.mat = listMaterial[current_material];
+		mat = listMaterial[current_material];
 	}
-	requestQueue->Enqueue(op);
+
+	PyramidCreation op = PyramidCreation(FVector(0, 0, 0), ps, q, par, mat);
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
+	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
 }
+
 int Primitive::PyramidFrustum(TArray<FVector> ps, TArray<FVector> q)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a Pyramid Frustum"));
-	Operation op = Operation();
-	op.op = TypeOP::PyramidFrustum;
-	op.top = q;
-	op.base = ps;
+	AActor* par = NULL;
+	UMaterialInterface* mat = NULL;
+
 	if (parent > -1) {
-		op.parent = listActor[parent];
+		par = listActor[parent];
 	}
 	if (current_material > -1) {
-		op.mat = listMaterial[current_material];
+		mat = listMaterial[current_material];
 	}
-	requestQueue->Enqueue(op);
+
+	PyramidFrustumCreation op = PyramidFrustumCreation(FVector(0, 0, 0), ps, q, par, mat);
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
+	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
 }
 
-int Primitive::PyramidFrustumWithMaterial(TArray<FVector> ps, TArray<FVector> q, int material)
-{
-	UE_LOG(LogTemp, Warning, TEXT("Creating a Pyramid Frustum"));
-	Operation op = Operation();
-	if (ps.Num() == 4) {
-		op.op = TypeOP::RightCuboid;
-		op.pos =  q[1] + (ps[0]-q[1])/2;
-		op.scale = FVector(FVector::Distance(ps[0],ps[1]), FVector::Distance(ps[0], q[0]), FVector::Distance(ps[0], ps[3]))/100;
-		op.rot = MyLookRotation(ps[1]-ps[0], ps[3]-ps[0]);
-	}else{
-	op.op = TypeOP::PyramidFrustumWall;
-	op.top = q;
-	op.base = ps;
-	}
 
-	if (parent > -1) {
-		op.parent = listActor[parent];
-	}
-	if (material > -1) {
-		op.mat = listMaterial[material];
-	}
 
-	requestQueue->Enqueue(op);
-	waitForRequest();
-	Response r;
-	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
-	return listActor.Add(newActor);
-}
-
-int Primitive::Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, float h, int material)
+int Primitive::Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, float h, UMaterialInterface* material)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating Slab"));
-	Operation op = Operation();
-	op.op = TypeOP::Slab;
-	op.height = h*100;
-	op.pos = contour[0];
-	op.base = contour;
+	
+	TArray<FVector> base = contour;
 
-	for (FVector v : op.base) {
-		v = v - contour[0];
+	for (int i = 0; i < base.Num(); i++) {
+		base[i] = base[i] - contour[0];
 	}
 
 
-	for (TArray<FVector> vectors : op.holes) {
-		for (FVector v :vectors) {
-			v = v - contour[0];
+	for (TArray<FVector> vectors : holes) {
+		for (int i = 0; i < vectors.Num(); i++) {
+			vectors[i]= vectors[i] - contour[0];
 		}
 	}
 
-	op.holes = holes;
+	AActor* par = NULL;
+
 	if (parent > -1) {
-		op.parent = listActor[parent];
+		par = listActor[parent];
 	}
-	if (material > -1) {
-		op.mat = listMaterial[material];
-	}
-	requestQueue->Enqueue(op);
+
+	SlabCreation op = SlabCreation(contour[0], base,holes, h * 100, par, material);
+
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
+	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
 }
 
-int Primitive::Chair(FVector pos, float angle)
-{
-	UE_LOG(LogTemp, Warning, TEXT("Creating a Chair"));
-	Operation op = Operation();
-	op.op = TypeOP::Chair;	
-	op.pos = pos;
-	op.rot = op.rot = FQuat::MakeFromEuler(FVector(0, 0, FMath::RadiansToDegrees(angle))).Rotator();
-	if (parent > -1) {
-		op.parent = listActor[parent];
-	}
-	requestQueue->Enqueue(op);
-	waitForRequest();
-	Response r;
-	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
-	return listActor.Add(newActor);
-}
 
 int Primitive::DeleteAll()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Deleting All Actors"));
-	Operation op = Operation();
-	op.op = TypeOP::Delete;
-	op.selectedActors = listActor;
-	listActor.Empty();
-	requestQueue->Enqueue(op);
+	DeleteCreation op = DeleteCreation(listActor);
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	
+	listActor.Empty();
 	return 0;
 }
 
-int Primitive::InstantiateBIMElement(int family, FVector pos, float angle)
+int Primitive::InstantiateBIMElement(UStaticMesh* family, FVector pos, float angle)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating Mesh"));
-	Operation op = Operation();
-	op.op = TypeOP::PlaceMesh;
-	op.pos = pos;
-	op.mesh = listMesh[family];
-	op.rot = op.rot = FQuat::MakeFromEuler(FVector(0, 0, FMath::RadiansToDegrees(angle))).Rotator();
+	AActor* par = NULL;
+
 	if (parent > -1) {
-		op.parent = listActor[parent];
+		par = listActor[parent];
 	}
-	requestQueue->Enqueue(op);
+
+	StaticMeshCreation op = StaticMeshCreation(pos, FQuat::MakeFromEuler(FVector(0, 0, FMath::RadiansToDegrees(angle))).Rotator(), FVector(1, 1, 1),par,family);
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
+	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
 }
 
@@ -558,14 +521,12 @@ int Primitive::LoadMaterial(std::string path)
 	if (path == "") {
 		return -1;
 	}
-	Operation op = Operation();
-	op.op = TypeOP::LoadMat;
-	op.path = FString(path.c_str());
-	requestQueue->Enqueue(op);
+	LoadCreation<UMaterialInterface> op = LoadCreation<UMaterialInterface>(FString(path.c_str()));
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	UMaterialInterface* mat = r.getMat();
+	UMaterialInterface* mat =(r.getResponse<UMaterialInterface>());
 	if (mat == NULL) {
 		return -1;
 	}
@@ -576,33 +537,32 @@ int Primitive::LoadMaterial(std::string path)
 int Primitive::LoadResource(std::string path)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Carregar Mesh"));
-	Operation op = Operation();
-	op.op = TypeOP::LoadRes;
-	op.path = FString(path.c_str());
-	requestQueue->Enqueue(op);
+	LoadCreation<UStaticMesh> op = LoadCreation<UStaticMesh>(FString(path.c_str()));
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	return listMesh.Add(r.getMesh());
+	return listMesh.Add((r.getResponse<UStaticMesh>()));
 }
 
-int Primitive::CreateBlockInstance(int mesh, FVector pos, FVector vx, FVector vy, float scale)
+int Primitive::CreateBlockInstance(UStaticMesh* mesh, FVector pos, FVector vx, FVector vy, float scale)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating Mesh"));
-	Operation op = Operation();
-	op.op = TypeOP::PlaceMesh;
-	op.height = scale;
-	op.pos = pos;
-	op.mesh = listMesh[mesh]; 
-	op.rot = MyLookRotation(vx, vy);
+	
+
+
+	AActor* par = NULL;
+
 	if (parent > -1) {
-		op.parent = listActor[parent];
+		par = listActor[parent];
 	}
-	requestQueue->Enqueue(op);
+
+	StaticMeshCreation op = StaticMeshCreation(pos, MyLookRotation(vx, vy), FVector(scale, scale, scale), par, mesh);
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
+	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
 }
 
@@ -618,129 +578,134 @@ int Primitive::SetCurrentMaterial(int material)
 	return 0;
 }
 
-int Primitive::Panel(TArray<FVector> pts, FVector n, int material)
+int Primitive::Panel(TArray<FVector> pts, FVector n, UMaterialInterface* material)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating Panel"));
-	Operation op = Operation();
-	op.op = TypeOP::Panel;
-	op.topPoint = n;
-	op.base = pts;
-	op.pos = pts[0];
-	for (FVector v : op.base) {
-		v = v - pts[0];
+
+
+	TArray<FVector> base = pts;
+	for (int i = 0; i < base.Num(); i++) {
+		base[i] = base[i] - pts[0];
 	}
 
+	AActor* par = NULL;
+	UMaterialInterface* mat = NULL;
+
 	if (parent > -1) {
-		op.parent = listActor[parent];
+		par = listActor[parent];
 	}
-	if (material > -1) {
-		op.mat = listMaterial[material];
+	if (current_material > -1) {
+		mat = listMaterial[current_material];
 	}
-	requestQueue->Enqueue(op);
+	PanelCreation op = PanelCreation(pts[0], base, n, par, material);
+
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
+	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
 }
 
-int Primitive::BeamRectSection(FVector pos, FVector vx, FVector vy, float dx, float dy, float dz, float angle, int material)
+int Primitive::BeamRectSection(FVector pos, FVector vx, FVector vy, float dx, float dy, float dz, float angle, UMaterialInterface* material)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a Beam Rect"));
-	RightCuboidCreation op = RightCuboidCreation();
-	op.op = TypeOP::RightCuboid;
-	op.scale = FVector(dx, dy, dz);
-	op.pos = pos;
-	op.rot = (MyLookRotation(vx, vy).Quaternion() * FQuat::MakeFromEuler(FVector(0, 0, -FMath::RadiansToDegrees(angle)))).Rotator();
+	AActor* par = NULL;
+
 	if (parent > -1) {
-		op.parent = listActor[parent];
+		par = listActor[parent];
 	}
-	if (material > -1) {
-		op.mat = listMaterial[material];
-	}
-	requestQueue->Enqueue(op);
+
+	RightCuboidCreation op = RightCuboidCreation(pos, (MyLookRotation(vx, vy).Quaternion() * FQuat::MakeFromEuler(FVector(0, 0, -FMath::RadiansToDegrees(angle)))).Rotator(), FVector(dx, dy, dz), par, material);
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
+	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
 }
 
-int Primitive::BeamCircSection(FVector bot, float radius, FVector top, int material)
+int Primitive::BeamCircSection(FVector bot, float radius, FVector top, UMaterialInterface* material)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a Cylinder"));
-	Operation op = Operation();
-	op.op = TypeOP::Cylinder;
-	op.pos = bot;
-	op.radius = radius;
-	op.height = FVector::Dist(top, bot);
-	op.rot = FQuat::FindBetween(FVector(0, 0, 1), top - bot).Rotator();
+
+	AActor* par = NULL;
+
 	if (parent > -1) {
-		op.parent = listActor[parent];
+		par = listActor[parent];
 	}
-	if (material > -1) {
-		op.mat = listMaterial[material];
-	}
-	requestQueue->Enqueue(op);
+
+
+	CylinderCreation op = CylinderCreation(bot, FQuat::FindBetween(FVector(0, 0, 1), top - bot).Rotator(), radius, FVector::Dist(top, bot), par, material);
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
+	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
 }
 
-int Primitive::Subtract(int ac1, int ac2) {
+int Primitive::Subtract(AActor* ac1, AActor* ac2) {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a Subtraction"));
-	Operation op = Operation();
-	op.op = TypeOP::Subtraction;
-	op.selectedActors.Add(listActor[ac1]);
-	op.selectedActors.Add(listActor[ac2]);
+	
+	TArray<AActor*> selectedActors;
+	 selectedActors.Add(ac1);
+	selectedActors.Add(ac2);
+	
+	AActor* par = NULL;
+	UMaterialInterface* mat = NULL;
+
 	if (parent > -1) {
-		op.parent = listActor[parent];
+		par = listActor[parent];
 	}
 	if (current_material > -1) {
-		op.mat = listMaterial[current_material];
+		mat = listMaterial[current_material];
 	}
-	requestQueue->Enqueue(op);
+
+	SubtractionCreation op = SubtractionCreation(selectedActors,par,mat);
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
+	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
 }
 
-int Primitive::Unite(int ac1, int ac2) {
+int Primitive::Unite(AActor* ac1, AActor* ac2) {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a Addition"));
-	Operation op = Operation();
-	op.op = TypeOP::Addition;
-	op.selectedActors.Add(listActor[ac1]);
-	op.selectedActors.Add(listActor[ac2]);
+	TArray<AActor*> selectedActors = TArray<AActor*>();
+	selectedActors.Add(ac1);
+	selectedActors.Add(ac2);
+
+	AActor* par = NULL;
+	UMaterialInterface* mat = NULL;
+
 	if (parent > -1) {
-		op.parent = listActor[parent];
+		par = listActor[parent];
 	}
 	if (current_material > -1) {
-		op.mat = listMaterial[current_material];
-
+		mat = listMaterial[current_material];
 	}
-	requestQueue->Enqueue(op);
+
+	AdditionCreation op = AdditionCreation(selectedActors, par, mat);
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
+	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
 }
 
-int Primitive::DeleteMany(TArray<int> acs)
+int Primitive::DeleteMany(TArray<AActor*> acs)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Deleting Some Actors"));
-	Operation op = Operation();
-	op.op = TypeOP::Delete;
-	for (int ac : acs) {
-		op.selectedActors.Add(listActor[ac]);
-		listActor[ac] = NULL;
+
+	for (AActor* ac : acs) {
+		listActor.Remove(ac);
 	}
 	
-	requestQueue->Enqueue(op);
+	DeleteCreation op = DeleteCreation(acs);
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -751,78 +716,59 @@ int Primitive::DeleteMany(TArray<int> acs)
 int Primitive::PointLight(FVector position, FLinearColor color, float range, float intensity)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a PointLight"));
-	Operation op = Operation();
-	op.op = TypeOP::PointLight;
-	op.pos = position;
-	op.radius = range;
-	op.height = intensity;
-	op.color = color;
+
+	AActor* par = NULL;
 	if (parent > -1) {
-		op.parent = listActor[parent];
+		par = listActor[parent];
 	}
 
-	requestQueue->Enqueue(op);
+	PointLightCreation op = PointLightCreation(position, par, color, intensity, range);
+
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
+	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
 }
 
 
 int Primitive::SetView(FVector position, FVector target, float lens, float aperture)
 {
-	Operation op = Operation();
-	op.op = TypeOP::Camera;
-	op.pos = position;
-	op.rot = UKismetMathLibrary::FindLookAtRotation(position, target);
-	op.scale = target;
-	op.radius = lens;
-	op.height = aperture;
-	requestQueue->Enqueue(op);
-
+	ChangeViewOperation op = ChangeViewOperation(position,target);
+	nextFramePosition = position;
+	nextFramerotation = UKismetMathLibrary::FindLookAtRotation(position, target);
+	nextFrameCamera[0] = FVector::Distance(position,target);
+	nextFrameCamera[2] = lens;
+	nextFrameCamera[1] = aperture;
+	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
-	camera = Cast<ACameraActor>( r.getResponse());
 	return 0;
 }
 
 FVector Primitive::ViewCamera()
 {
-	if (camera != NULL) {
-		return FVector();
-	}
-	return  FVector();
+	return nextFramePosition;
 }
 
 
 FVector Primitive::ViewTarget()
 {
-	if (camera != NULL) {
-		return FVector();
-	}
-	return FVector();
+	return nextFramePosition + nextFramerotation.Vector() * nextFrameCamera[0];
 }
 
 float Primitive::ViewLens()
 {
-	if (camera != NULL) {
-		return 0;
-	}
-	return 0;
+	return nextFrameCamera[2];
 }
 
 int Primitive::RenderView(int width, int height, std::string name, std::string path, int frame)
 {
-	Operation op = Operation();
-	op.op = TypeOP::Render;
-	op.param[0] = width;
-	op.param[1] = height;
-	op.param[2] = frame;
-	op.name = FString(name.c_str());
-	op.path = FString(path.c_str());
-	requestQueue->Enqueue(op);
+	RenderCreation op = RenderCreation(nextFramePosition,nextFramerotation, nextFrameCamera[0], nextFrameCamera[1], nextFrameCamera[2],width,height,frame, FString(name.c_str()), FString(path.c_str()));
+
+	requestQueue->Enqueue(&op);
 
 	waitForRequest();
 	Response r;
@@ -830,15 +776,24 @@ int Primitive::RenderView(int width, int height, std::string name, std::string p
 	return 0;
 }
 
-/*
-int Primitive::CopyMesh(char* label, int actor, float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz, const char* mat)
+int Primitive::Spotlight(FVector position, FVector dir, FLinearColor color, float range, float intensity, float hotspot, float falloff)
 {
-	AStaticMeshActor* smActor = Cast<AStaticMeshActor>(listActor[actor]);
-	Operation op = PlaceMesh(FVector(px, py, pz), FRotator(rx, ry, rz), FVector(sx, sy, sz), mat, smActor->GetStaticMeshComponent()->GetStaticMesh(), label);
-	queue->Enqueue(op);
+	UE_LOG(LogTemp, Warning, TEXT("Creating a Spotlight"));
+
+
+	AActor* par = NULL;
+	if (parent > -1) {
+		par = listActor[parent];
+	}	
+	
+	SpotlightCreation op = SpotlightCreation(position, FRotator::MakeFromEuler(dir), par, color, intensity, range, hotspot, falloff);
+
+	requestQueue->Enqueue(&op);
 	waitForRequest();
-	responsequeue->Dequeue(op);
-	AActor* newActor = NULL;
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
 }
-*/
+
+

@@ -5,16 +5,17 @@
 class Response
 {
 private:
-	AActor* _resp;
-	UMaterialInterface* _mat;
-	UStaticMesh* _mesh;
+	UObject* _resp;
 public:
-	Response(AActor* resp);
-	Response(UMaterialInterface* resp);
-	Response(UStaticMesh* resp);
+	Response(UObject* resp);
 	Response();
-	AActor* getResponse();
-	UMaterialInterface* getMat();
-	UStaticMesh* getMesh();
+	template <class T>
+	T* getResponse();
+
 };
 
+template<class T>
+inline T* Response::getResponse()
+{
+	return Cast<T>(_resp);
+}

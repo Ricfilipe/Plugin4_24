@@ -17,6 +17,7 @@ current_layer(0)
 slab()
 panel()
 chair()
+spotlightricardo()
 
 Khepri.show_rpc(true)
 Khepri.step_rpc(true)
@@ -26,6 +27,8 @@ start_film("1_Dolly-Forth")
 render_size(1920, 1080)
 set_view(xyz(-3.504779815673828,-76.60165405273438,51.335548400878906), xyz(-3.52087664604187,-75.75193786621094,50.80855178833008), 35.0)
 save_film_frame()
+
+
 
 
 space_city(p, r, α, β, δ, n) =

@@ -16,7 +16,6 @@ RpiService::RpiService() {
     ADD_FUNCTION(Primitive::Cylinder);
     ADD_FUNCTION(Primitive::Pyramid);
     ADD_FUNCTION(Primitive::PyramidFrustum);
-    ADD_FUNCTION(Primitive::PyramidFrustumWithMaterial);
     ADD_FUNCTION(Primitive::DeleteAll);
     ADD_FUNCTION(Primitive::Slab);
     ADD_FUNCTION(Primitive::CurrentParent);
@@ -29,7 +28,6 @@ RpiService::RpiService() {
     ADD_FUNCTION(Primitive::Panel);
     ADD_FUNCTION(Primitive::BeamRectSection);
     ADD_FUNCTION(Primitive::BeamCircSection);
-    ADD_FUNCTION(Primitive::Chair);
     ADD_FUNCTION(Primitive::InstantiateBIMElement);
     ADD_FUNCTION(Primitive::Subtract);
     ADD_FUNCTION(Primitive::Unite);
@@ -40,6 +38,7 @@ RpiService::RpiService() {
     ADD_FUNCTION(Primitive::ViewLens);
     ADD_FUNCTION(Primitive::ViewTarget);
     ADD_FUNCTION(Primitive::RenderView);
+    ADD_FUNCTION(Primitive::Spotlight);
 	UE_LOG(LogThread, Log, TEXT("Created Thread"));
 }
 

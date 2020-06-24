@@ -4,6 +4,7 @@
 THIRD_PARTY_INCLUDES_START
 #include <boost/asio.hpp>
 THIRD_PARTY_INCLUDES_END
+#include "Primitive.h"
 
 namespace binary_stream {
 
@@ -146,11 +147,26 @@ public:
       return FVector(Read<float>(), Read<float>(), Read<float>());
        
   }
-
+  template<>
   FLinearColor Read(Type<FLinearColor>) {
       return FLinearColor(Read<float>(), Read<float>(), Read<float>(), 0);
 
   }
+  template<>
+  UMaterialInterface* Read(Type<UMaterialInterface*>) {
+      return Primitive::intToUMaterial(Read<int32_t>());
+  }
+
+  template<>
+  UStaticMesh* Read(Type<UStaticMesh*>) {
+      return Primitive::intToUStaticMesh(Read<int32_t>());
+  }
+
+  template<>
+  AActor* Read(Type<AActor*>) {
+      return Primitive::intToAActor(Read<int32_t>());
+  }
+
 
   template<>
   void Write(FVector const& value) {
