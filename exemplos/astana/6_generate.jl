@@ -2,6 +2,9 @@ include("5_AAV.jl")
 
 # GENERATE _____________________________________________________________________
 
+
+
+
 macro with_layer(name, expr)
   quote
     let  l =  1 #create_layer($name)
@@ -15,6 +18,16 @@ macro with_layer(name, expr)
 end
 
 # fast_unity()
+
+createnActors(number) =
+begin
+  if number == 0
+      true
+  else
+     sphere()
+      createnActors(number-1)
+  end
+end
 
 astana() =
     #with(default_beam_family, astana_beam_family) do
@@ -31,7 +44,7 @@ astana() =
         #@with_layer "Out Columns" out_columns(astana_center_p)
     #WALLS
         #@with_layer "Block Walls" book_walls(astana_center_p)
-         @with_layer "Cores" cores(astana_center_p)               #WALLS & DOORS & ELEVATORS & TOP SLABS
+         #@with_layer "Cores" cores(astana_center_p)               #WALLS & DOORS & ELEVATORS & TOP SLABS
             # AutoCAD -- Error
         #@with_layer "Glass Walls" glass_walls(astana_center_p)   #CURTAIN WALL
     #STEEL FAÇADE
@@ -58,3 +71,7 @@ astana() =
     end
 
 astana()
+
+
+@with_layer "teste:" createnActors(100)
+delete_all_shapes()

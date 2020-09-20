@@ -41,7 +41,7 @@ Response Operation::execute()
 	UStaticMesh* loaded_mesh = NULL;
 	switch (op) {
 	case Sphere:
-		return Response(CreateSphere());
+		return Response(CreateEmptyActor());
 		break;
 	case Cube:
 		loaded_mesh = lookForMesh(FString("/Game/Box" +

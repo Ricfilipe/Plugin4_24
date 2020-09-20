@@ -468,16 +468,16 @@ TArray<AActor*> Primitive::getArray() {
 int Primitive::Sphere(float x, float y, float z, float radius)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Creating a Sphere"));
-	Operation op = Operation();
-	op.op = TypeOP::Sphere;
-	op.pos = FVector(x, y, z);
-	op.radius = radius;
-	queue->Enqueue(op);
-	waitForRequest();
-	Response r;
-	responsequeue->Dequeue(r);
-	AActor* newActor = r.getResponse();
-	return listActor.Add(newActor);
+	FVector objectScale(1, 1, 1);
+	FTransform objectTrasform(FRotator(0,0,0), FVector(0,0,0), objectScale);
+	UWorld* currentWorld = GEditor->GetEditorWorldContext().World();
+	ULevel* currentLevel = currentWorld->GetCurrentLevel();
+	UClass* staticMeshClass = AActor::StaticClass();
+
+	AActor* realActor = GEditor->AddActor(currentLevel, staticMeshClass, objectTrasform, true, RF_Public | RF_Standalone | RF_Transactional);
+	realActor->SetActorLabel("StaticMesh");
+	realActor->SetActorScale3D(objectScale);
+	return listActor.Add(realActor);
 }
 
 /*
