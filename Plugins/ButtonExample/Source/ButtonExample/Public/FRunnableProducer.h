@@ -5,7 +5,7 @@
 #include <fstream>
 #include <string>
 #include "Operations/Operation.h"
-#include "rpi_service.h"
+#include "RPI/rpi_service.h"
 
 class FRunnableProducer : public FRunnable
 {

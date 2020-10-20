@@ -1,9 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "ActorCreation.h"
+#include "Operations/Actor/ActorCreation.h"
 
+ActorCreation::ActorCreation() {
 
+}
 ActorCreation::ActorCreation(FVector position, FRotator rotation, FVector scl, AActor* par)
 {
 	pos = position;

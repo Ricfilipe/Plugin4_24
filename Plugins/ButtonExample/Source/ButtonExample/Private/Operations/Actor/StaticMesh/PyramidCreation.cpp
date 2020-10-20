@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "PyramidCreation.h"
+#include "Operations/Actor/StaticMesh/PyramidCreation.h"
 #include "CustomBrushes/KhepriPyramid.h"
 #include "Primitive.h"
 

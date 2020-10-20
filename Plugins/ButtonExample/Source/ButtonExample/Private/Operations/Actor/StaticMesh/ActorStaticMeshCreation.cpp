@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "ActorStaticMeshCreation.h"
+#include "Operations/Actor/StaticMesh/ActorStaticMeshCreation.h"
 #include "Engine/Polys.h"
 #include "RawMesh.h"
 #include "GeomTools.h"
@@ -86,10 +86,10 @@ AActor* ActorStaticMeshCreation::PlaceStaticMesh(UStaticMesh* mesh)
 	return realActor;
 }
 
-UStaticMesh* ActorStaticMeshCreation::CreateMesh(FString name, TArray<FVector> Vertices, TArray<Face> Faces, int size)
+UStaticMesh* ActorStaticMeshCreation::CreateMesh(FString names, TArray<FVector> Vertices, TArray<Face> Faces, int size)
 {
 	// Object Details
-	FString ObjectName = name;
+	FString ObjectName = names;
 	int numberOfVertices = size;
 
 	ObjectName = ObjectName.Replace(TEXT("."), TEXT("a"));
@@ -103,8 +103,8 @@ UStaticMesh* ActorStaticMeshCreation::CreateMesh(FString name, TArray<FVector> V
 	int numberOfMaterials = Materials.Num();
 
 	// Create Package
-	FString path = FString("/Game/MyStaticMeshes/") + ObjectName;
-	UPackage* Package = CreatePackage(nullptr, *path);
+	FString pathToMesh = FString("/Game/MyStaticMeshes/") + ObjectName;
+	UPackage* Package = CreatePackage(nullptr, *pathToMesh);
 	Package->FullyLoad();
 
 	FName StaticMeshName;

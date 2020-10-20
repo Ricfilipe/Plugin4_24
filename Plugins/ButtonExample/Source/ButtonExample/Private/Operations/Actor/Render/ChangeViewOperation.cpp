@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "ChangeViewOperation.h"
+#include "Operations/Actor/Render/ChangeViewOperation.h"
 #include "LevelEditorViewport.h"
 #include "Slate/SceneViewport.h"
 

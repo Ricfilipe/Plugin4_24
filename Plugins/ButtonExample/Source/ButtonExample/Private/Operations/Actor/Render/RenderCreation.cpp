@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "RenderCreation.h"
+#include "Operations/Actor/Render/RenderCreation.h"
 
 #include "CineCameraComponent.h"
 #include "LevelSequenceActor.h"
@@ -70,7 +70,7 @@ Response RenderCreation::execute()
 
 		realActor = Cast<ALevelSequenceActor>(newActorCreated);
 		realActor->SetActorLabel(name);
-		auto original = LoadObject<ULevelSequence>(nullptr, *FString("/Game/MyStaticMeshes/LevelSequence/ExampleSequence.ExampleSequence"));
+		auto original = LoadObject<ULevelSequence>(nullptr, *FString("/ButtonExample/LevelSequence/ExampleSequence.ExampleSequence"));
 		current = AuxiliarFunctions::CreateLevelSeq(sequenceName, FString("/Game/MyStaticMeshes/LevelSequence"), original);
 		realActor->SetSequence(current);
 		TArray<FMovieSceneBinding> binds = current->GetMovieScene()->GetBindings();

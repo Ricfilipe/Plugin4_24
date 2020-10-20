@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "RightCuboidCreation.h"
+#include "Operations/Actor/StaticMesh/RightCuboidCreation.h"
 
 RightCuboidCreation::RightCuboidCreation(FVector position, FRotator rotation, FVector scale, AActor* parent, UMaterialInterface* mat) :
 	ActorStaticMeshCreation(position, rotation, scale, parent, mat, FString("/Game/MyStaticMeshes/RightCuboid" +

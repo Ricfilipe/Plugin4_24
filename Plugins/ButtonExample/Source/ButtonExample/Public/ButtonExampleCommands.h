@@ -11,7 +11,7 @@ class FButtonExampleCommands : public TCommands<FButtonExampleCommands>
 public:
 
 	FButtonExampleCommands()
-		: TCommands<FButtonExampleCommands>(TEXT("ButtonExample"), NSLOCTEXT("Contexts", "ButtonExample", "ButtonExample Plugin"), NAME_None, FButtonExampleStyle::GetStyleSetName())
+		: TCommands<FButtonExampleCommands>(TEXT("ButtonExample"), NSLOCTEXT("Contexts", "Khepri", "Khepri Plugin"), NAME_None, FButtonExampleStyle::GetStyleSetName())
 	{
 	}
 

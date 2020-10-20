@@ -153,7 +153,7 @@ UKhepriCylinder::UKhepriCylinder(const FObjectInitializer& ObjectInitializer) : 
 	ToolTip = TEXT("BrushBuilderName_Cylinder");
 }
 
-void UKhepriCylinder::BuildCylinder(int32 Direction, int32 InSides, float InZ, float Radius)
+void UKhepriCylinder::BuildCylinder(int32 Direction, int32 InSides, float InZ, float radius)
 {
 	int32 n = GetVertexCount();
 	int32 Ofs = 0;
@@ -162,7 +162,7 @@ void UKhepriCylinder::BuildCylinder(int32 Direction, int32 InSides, float InZ, f
 	// Vertices.
 	for (int32 i = 0; i < InSides; i++)
 		for (int32 j = 0; j < 2; j += 1)
-			Vertex3f(Radius * FMath::Sin((2 * i + Ofs) * PI / InSides), Radius * FMath::Cos((2 * i + Ofs) * PI / InSides), j * InZ);
+			Vertex3f(radius * FMath::Sin((2 * i + Ofs) * PI / InSides), radius * FMath::Cos((2 * i + Ofs) * PI / InSides), j * InZ);
 
 	// Polys.
 	for (int32 i = 0; i < InSides; i++)
@@ -627,11 +627,11 @@ bool UKhepriPyramid::Build(UWorld* InWorld, ABrush* InBrush) {
 	return EndBrush(InWorld, InBrush);
 }
 
-void UKhepriPyramid::BuildPyramid(int32 Direction, FVector top, TArray<FVector> vertices, int number){
+void UKhepriPyramid::BuildPyramid(int32 Direction, FVector tops, TArray<FVector> vertices, int number){
 	for (int j = 0; j < number; j++) {
 		Vertex3f(vertices[j].X , vertices[j].Y, vertices[j].Z);
 	}
-	Vertex3f(top.X, top.Y, top.Z);
+	Vertex3f(tops.X, tops.Y, tops.Z);
 
 	for (int i = 0; i < number; i++) {
 		Poly3i(Direction, number, i,(i + 1) % number);

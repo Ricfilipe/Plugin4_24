@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "PyramidFrustumCreation.h"
+#include "Operations/Actor/StaticMesh/PyramidFrustumCreation.h"
 #include "Primitive.h"
 #include "CustomBrushes/KhepriPyramidFrustum.h"
 

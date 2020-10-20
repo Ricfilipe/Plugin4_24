@@ -1,8 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "BoxCreation.h"
-#include "..\..\..\..\Public\Operations\Actor\StaticMesh\BoxCreation.h"
+#include "Operations/Actor/StaticMesh/BoxCreation.h"
 
 
 

@@ -182,7 +182,7 @@ AActor* Primitive::intToAActor(int index)
 	return NULL;
 }
 
-bool  Primitive::checkQueue(float delta, int SpF) {
+bool  Primitive::checkQueue(float delta, int SpFs) {
 	int num = 0;
 	Operation* fo;
 

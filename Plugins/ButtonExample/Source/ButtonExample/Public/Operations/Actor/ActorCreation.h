@@ -12,6 +12,7 @@
 class BUTTONEXAMPLE_API ActorCreation : public Operation
 {
 public:
+	ActorCreation();
 	ActorCreation(FVector position, FRotator rotation, FVector scl, AActor* par);
 	Response execute() override;
 

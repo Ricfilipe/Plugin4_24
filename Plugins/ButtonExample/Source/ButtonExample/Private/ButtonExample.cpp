@@ -24,7 +24,6 @@
 #include <fstream>
 #include "Widgets/Input/SCheckBox.h"
 #include "Styling/SlateTypes.h"
-#include "rpi_service.h"
 #include "Engine/World.h"
 #include "LevelEditor.h"
 #include "Editor.h"
@@ -55,7 +54,7 @@
 
 using namespace std;
 
- rpi_service::RpiService* rpi;
+
 
 static const FName ButtonExampleTabName("ButtonExample");
 
@@ -120,7 +119,7 @@ void FButtonExampleModule::StartupModule()
 	}
 	
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(ButtonExampleTabName, FOnSpawnTab::CreateRaw(this, &FButtonExampleModule::OnSpawnPluginTab))
-		.SetDisplayName(LOCTEXT("FButtonExampleTabTitle", "ButtonExample"))
+		.SetDisplayName(LOCTEXT("FButtonExampleTabTitle", "Khepri"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
 
 	 FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FButtonExampleModule::checkQueue),0.001f);

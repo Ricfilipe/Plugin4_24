@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "PointLightCreation.h"
+#include "Operations/Actor/Light/PointLightCreation.h"
 #include "Engine/PointLight.h"
 #include "Components/PointLightComponent.h"
 

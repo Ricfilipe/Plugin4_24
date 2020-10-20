@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "PanelCreation.h"
+#include "Operations/Actor/StaticMesh/PanelCreation.h"
 #include "GeomTools.h"
 
 using namespace AuxiliarFunctions;

@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "SubtractionCreation.h"
+#include "Operations/ActorOperation/SubtractionCreation.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMeshActor.h"
 #include "Primitive.h"
@@ -20,8 +20,8 @@ Response SubtractionCreation::execute()
 	AStaticMeshActor* ac = Cast<AStaticMeshActor>(actors[0]);
 	brushes.Add(AuxiliarFunctions::convertMeshtoBrush(ac->GetStaticMeshComponent()->GetStaticMesh(), ac->GetActorRotation(), ac->GetActorLocation(), true));
 	for (int i = 1; i < actors.Num(); i++) {
-		AStaticMeshActor* ac = Cast<AStaticMeshActor>(actors[i]);
-		brushes.Add(AuxiliarFunctions::convertMeshtoBrush(ac->GetStaticMeshComponent()->GetStaticMesh(), ac->GetActorRotation(), ac->GetActorLocation(), false));
+		AStaticMeshActor* actorSub = Cast<AStaticMeshActor>(actors[i]);
+		brushes.Add(AuxiliarFunctions::convertMeshtoBrush(actorSub->GetStaticMeshComponent()->GetStaticMesh(), actorSub->GetActorRotation(), actorSub->GetActorLocation(), false));
 	}
 	AStaticMeshActor* realActor = (AStaticMeshActor*)Primitive::ConvertToStaticMesh(brushes, FString("/Game/Subtraction" +
 		FString::SanitizeFloat(num_subtraction++)

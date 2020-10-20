@@ -11,6 +11,7 @@ DEFINE_LOG_CATEGORY(LogThread);
 namespace rpi_service {
 
 RpiService::RpiService() {
+    
     ADD_FUNCTION(Primitive::Box);
     ADD_FUNCTION(Primitive::RightCuboid);
     ADD_FUNCTION(Primitive::Cylinder);
@@ -40,6 +41,7 @@ RpiService::RpiService() {
     ADD_FUNCTION(Primitive::RenderView);
     ADD_FUNCTION(Primitive::Spotlight);
 	UE_LOG(LogThread, Log, TEXT("Created Thread"));
+    
 }
 
 void RpiService::InsertMap(std::string name, std::unique_ptr<reification::HandlerInterface> handler) {

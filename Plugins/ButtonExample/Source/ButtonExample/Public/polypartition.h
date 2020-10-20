@@ -105,8 +105,8 @@ public:
         return hole;
     }
 
-    void SetHole(bool hole) {
-        this->hole = hole;
+    void SetHole(bool holes) {
+        this->hole = holes;
     }
 
     TPPLPoint& GetPoint(long i) {

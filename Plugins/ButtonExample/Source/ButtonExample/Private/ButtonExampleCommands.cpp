@@ -6,7 +6,7 @@
 
 void FButtonExampleCommands::RegisterCommands()
 {
-	UI_COMMAND(OpenPluginWindow, "ButtonExample", "Bring up ButtonExample window", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(OpenPluginWindow, "Khepri", "Bring up Khepri window", EUserInterfaceActionType::Button, FInputGesture());
 }
 
 #undef LOCTEXT_NAMESPACE
