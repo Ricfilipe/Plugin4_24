@@ -26,6 +26,8 @@ class BUTTONEXAMPLE_API Operation
 {
 
 public:
+	FDateTime receiveTime;
+
 	Operation();
 	TypeOP op;
 

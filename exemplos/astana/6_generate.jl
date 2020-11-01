@@ -2,6 +2,9 @@ include("5_AAV.jl")
 
 # GENERATE _____________________________________________________________________
 
+
+
+
 macro with_layer(name, expr)
   quote
     let  l =  1 #create_layer($name)
@@ -15,6 +18,16 @@ macro with_layer(name, expr)
 end
 
 # fast_unity()
+
+createnActors(number) =
+begin
+  if number == 0
+      true
+  else
+     box()
+      createnActors(number-1)
+  end
+end
 
 astana() =
     #with(default_beam_family, astana_beam_family) do
@@ -58,3 +71,7 @@ astana() =
     end
 
 astana()
+
+
+@with_layer "teste:" createnActors(50)
+delete_all_shapes()

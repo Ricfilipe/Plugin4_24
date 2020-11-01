@@ -41,7 +41,9 @@ int current_material = -1;
 FVector nextFramePosition;
 FRotator nextFramerotation;
 float nextFrameCamera[3];
-
+FDateTime previousOperation;
+bool startTime =false;
+int sleepTime = 1;
 
 TQueue<Operation*>* requestQueue = new TQueue<Operation*, EQueueMode::Spsc>();
 TQueue<Response>* responsequeue = new TQueue<Response, EQueueMode::Spsc>();
@@ -186,7 +188,7 @@ bool  Primitive::checkQueue(float delta, int SpFs) {
 	int num = 0;
 	Operation* fo;
 
-
+	double time;
 
 
 	// Create Static Mesh
@@ -197,8 +199,27 @@ bool  Primitive::checkQueue(float delta, int SpFs) {
 		requestQueue->Dequeue(fo);
 
 		responsequeue->Enqueue(fo->execute());
-		
-		FPlatformProcess::Sleep(0.001f);
+		if (startTime) {
+			time = (fo->receiveTime - previousOperation).GetTotalMilliseconds();
+			UE_LOG(LogTemp, Warning, TEXT("time between %f"),time);
+			if (time < 50) {
+
+				if (sleepTime >= time) {
+					while (sleepTime >= time && sleepTime * 2 < 50)
+						sleepTime = 2 * sleepTime;
+				}
+				else {
+					while (sleepTime / 2 >= time && sleepTime > 1)
+						sleepTime = sleepTime / 2;
+				}
+			}
+		}
+		else {
+			startTime = true;
+			
+		}
+		previousOperation = FDateTime::Now();
+		FPlatformProcess::Sleep(sleepTime*0.001f);
 	
 	}
 	return true;
@@ -332,6 +353,7 @@ int Primitive::Cylinder(FVector bot, float radius, FVector top)
 		mat = listMaterial[current_material];
 	}
 	CylinderCreation op = CylinderCreation(bot, FQuat::FindBetween(FVector(0, 0, 1), top - bot).Rotator(), radius, FVector::Dist(top, bot),par,mat);
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
@@ -359,6 +381,7 @@ int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, floa
 			mat = listMaterial[current_material];
 		}
 		BoxCreation op = BoxCreation(pos, MyLookRotation(vx, vy), FVector(sx,sy,sz),par,mat);
+		op.receiveTime = FDateTime::Now();
 		requestQueue->Enqueue(&op);
 		waitForRequest();
 		Response r;
@@ -383,7 +406,7 @@ int Primitive::RightCuboid(FVector pos, FVector vx, FVector vz, float sx, float 
 		mat = listMaterial[current_material];
 	}
 	RightCuboidCreation op = RightCuboidCreation(pos, (MyLookRotation(vx, vz).Quaternion() * FQuat::MakeFromEuler(FVector(0, 0, FMath::RadiansToDegrees(angle)))).Rotator(),FVector(sx,sy,sz),par,mat);
-
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
@@ -407,6 +430,7 @@ int Primitive::Pyramid(TArray<FVector> ps, FVector q)
 	}
 
 	PyramidCreation op = PyramidCreation(FVector(0, 0, 0), ps, q, par, mat);
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
@@ -429,6 +453,7 @@ int Primitive::PyramidFrustum(TArray<FVector> ps, TArray<FVector> q)
 	}
 
 	PyramidFrustumCreation op = PyramidFrustumCreation(FVector(0, 0, 0), ps, q, par, mat);
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
@@ -463,7 +488,7 @@ int Primitive::Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, floa
 	}
 
 	SlabCreation op = SlabCreation(contour[0], base,holes, h * 100, par, material);
-
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
@@ -495,6 +520,7 @@ int Primitive::InstantiateBIMElement(UStaticMesh* family, FVector pos, float ang
 	}
 
 	StaticMeshCreation op = StaticMeshCreation(pos, FQuat::MakeFromEuler(FVector(0, 0, FMath::RadiansToDegrees(angle))).Rotator(), FVector(1, 1, 1),par,family);
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
@@ -522,6 +548,7 @@ int Primitive::LoadMaterial(std::string path)
 		return -1;
 	}
 	LoadCreation<UMaterialInterface> op = LoadCreation<UMaterialInterface>(FString(path.c_str()));
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
@@ -538,6 +565,7 @@ int Primitive::LoadResource(std::string path)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Carregar Mesh"));
 	LoadCreation<UStaticMesh> op = LoadCreation<UStaticMesh>(FString(path.c_str()));
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
@@ -558,6 +586,7 @@ int Primitive::CreateBlockInstance(UStaticMesh* mesh, FVector pos, FVector vx, F
 	}
 
 	StaticMeshCreation op = StaticMeshCreation(pos, MyLookRotation(vx, vy), FVector(scale, scale, scale), par, mesh);
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
@@ -598,7 +627,7 @@ int Primitive::Panel(TArray<FVector> pts, FVector n, UMaterialInterface* materia
 		mat = listMaterial[current_material];
 	}
 	PanelCreation op = PanelCreation(pts[0], base, n, par, material);
-
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
@@ -617,6 +646,7 @@ int Primitive::BeamRectSection(FVector pos, FVector vx, FVector vy, float dx, fl
 	}
 
 	RightCuboidCreation op = RightCuboidCreation(pos, (MyLookRotation(vx, vy).Quaternion() * FQuat::MakeFromEuler(FVector(0, 0, -FMath::RadiansToDegrees(angle)))).Rotator(), FVector(dx, dy, dz), par, material);
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
@@ -637,6 +667,7 @@ int Primitive::BeamCircSection(FVector bot, float radius, FVector top, UMaterial
 
 
 	CylinderCreation op = CylinderCreation(bot, FQuat::FindBetween(FVector(0, 0, 1), top - bot).Rotator(), radius, FVector::Dist(top, bot), par, material);
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
@@ -663,6 +694,7 @@ int Primitive::Subtract(AActor* ac1, AActor* ac2) {
 	}
 
 	SubtractionCreation op = SubtractionCreation(selectedActors,par,mat);
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
@@ -688,6 +720,7 @@ int Primitive::Unite(AActor* ac1, AActor* ac2) {
 	}
 
 	AdditionCreation op = AdditionCreation(selectedActors, par, mat);
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
@@ -723,8 +756,9 @@ int Primitive::PointLight(FVector position, FLinearColor color, float range, flo
 	}
 
 	PointLightCreation op = PointLightCreation(position, par, color, intensity, range);
-
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
+
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
@@ -767,7 +801,7 @@ float Primitive::ViewLens()
 int Primitive::RenderView(int width, int height, std::string name, std::string path, int frame)
 {
 	RenderCreation op = RenderCreation(nextFramePosition,nextFramerotation, nextFrameCamera[0], nextFrameCamera[1], nextFrameCamera[2],width,height,frame, FString(name.c_str()), FString(path.c_str()));
-
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 
 	waitForRequest();
@@ -787,7 +821,7 @@ int Primitive::Spotlight(FVector position, FVector dir, FLinearColor color, floa
 	}	
 	
 	SpotlightCreation op = SpotlightCreation(position, FRotator::MakeFromEuler(dir), par, color, intensity, range, hotspot, falloff);
-
+	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;

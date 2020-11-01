@@ -21,7 +21,7 @@ protected:
 template<class T>
 inline Response LoadCreation<T>::execute()
 {
-    return Response(LoadObject<T>(nullptr, *path));
+    return Response(LoadObject<T>(nullptr, *_path));
 }
 
 template<class T>
