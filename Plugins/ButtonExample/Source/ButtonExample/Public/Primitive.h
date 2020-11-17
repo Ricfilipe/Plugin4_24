@@ -66,6 +66,8 @@ namespace Primitive {
 
 	int  PyramidFrustum(TArray<FVector> ps, TArray<FVector> q);
 
+	int  PyramidFrustumWithMaterial(TArray<FVector> ps, TArray<FVector> q, UMaterialInterface* material);
+
 	int Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, float h, UMaterialInterface* material);
 
 	 int Panel(TArray<FVector>  pts, FVector n, UMaterialInterface* material);

@@ -11,6 +11,7 @@ PanelCreation::PanelCreation(FVector pos, TArray<FVector> bs, FVector n, AActor*
 {
 	normal = n;
 	base = bs;
+	op = TypeOP::Panel;
 }
 
 Response PanelCreation::execute()

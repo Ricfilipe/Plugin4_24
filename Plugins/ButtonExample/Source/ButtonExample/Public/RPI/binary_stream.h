@@ -144,13 +144,12 @@ public:
 
   template<>
   FVector Read(Type<FVector>) {
-      return FVector(Read<float>(), Read<float>(), Read<float>());
-       
+      return FVector(Read<float>(), Read<float>(), Read<float>());    
   }
+
   template<>
   FLinearColor Read(Type<FLinearColor>) {
       return FLinearColor(Read<float>(), Read<float>(), Read<float>(), 0);
-
   }
   template<>
   UMaterialInterface* Read(Type<UMaterialInterface*>) {
@@ -170,9 +169,9 @@ public:
 
   template<>
   void Write(FVector const& value) {
-      Write<int32_t>(value.X);
-      Write<int32_t>(value.Y);
-      Write<int32_t>(value.Z);
+      Write<float>(value.X);
+      Write<float>(value.Y);
+      Write<float>(value.Z);
   }
 
 

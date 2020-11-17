@@ -13,6 +13,7 @@ SlabCreation::SlabCreation(FVector pos, TArray<FVector> bs, TArray<TArray<FVecto
 	height = hght;
 	base = bs;
 	_holes = holes;
+	op = TypeOP::Slab;
 }
 
 

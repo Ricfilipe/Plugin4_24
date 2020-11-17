@@ -46,7 +46,7 @@ public:
 	Response execute() override;
 	
 protected:
-	FString path;
+	FString _path;
 	UStaticMesh* lookForMesh(FString mesh);
 	UMaterialInterface* mat = NULL;
 

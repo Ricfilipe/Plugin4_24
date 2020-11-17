@@ -21,7 +21,7 @@ ActorStaticMeshCreation::ActorStaticMeshCreation(FVector position, FRotator rota
 	rot = rotation;
 	scale = scl;
 	parent = par;
-	path = meshPath;
+	_path = meshPath;
 }
 
 ActorStaticMeshCreation::ActorStaticMeshCreation(FVector position, FRotator rotation, FVector scl, AActor* par, UMaterialInterface* material) : ActorCreation(position, rotation, scl, par)
@@ -40,12 +40,12 @@ ActorStaticMeshCreation::ActorStaticMeshCreation(FVector position, FRotator rota
 	scale = scl;
 	parent = par;
 	mat = material;
-	path = meshPath;
+	_path = meshPath;
 }
 
 Response ActorStaticMeshCreation::execute()
 {
-	UStaticMesh* loaded_mesh = lookForMesh(path);
+	UStaticMesh* loaded_mesh = lookForMesh(_path);
 	if (loaded_mesh) {
 		return  Response(PlaceStaticMesh(loaded_mesh));
 	}

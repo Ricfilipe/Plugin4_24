@@ -43,6 +43,14 @@
 		{
 			"Name": "Volumetrics",
 			"Enabled": true
+		},
+		{
+			"Name": "VRayForUnreal",
+			"Enabled": true
+		},
+		{
+			"Name": "OctanePlugin",
+			"Enabled": true
 		}
 	]
 }

@@ -462,6 +462,25 @@ int Primitive::PyramidFrustum(TArray<FVector> ps, TArray<FVector> q)
 	return listActor.Add(newActor);
 }
 
+int Primitive::PyramidFrustumWithMaterial(TArray<FVector> ps, TArray<FVector> q, UMaterialInterface* material)
+{
+	float dx= (ps[1] - ps[0]).Size()/100;
+	float dy = (ps[2] - ps[1]).Size()/100;
+	float dz = (q[0]-ps[0]).Size()/100;
+	AActor* par = NULL;
+	if (parent > -1) {
+		par = listActor[parent];
+	}
+	BoxCreation op = BoxCreation(ps[0], MyLookRotation(ps[1] - ps[0], q[0] - ps[0]), FVector(dx, dy, dz), par, material);
+	op.receiveTime = FDateTime::Now();
+	requestQueue->Enqueue(&op);
+	waitForRequest();
+	Response r;
+	responsequeue->Dequeue(r);
+	AActor* newActor = r.getResponse<AActor>();
+	return listActor.Add(newActor);
+}
+
 
 
 int Primitive::Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, float h, UMaterialInterface* material)
@@ -770,12 +789,13 @@ int Primitive::PointLight(FVector position, FLinearColor color, float range, flo
 int Primitive::SetView(FVector position, FVector target, float lens, float aperture)
 {
 	ChangeViewOperation op = ChangeViewOperation(position,target);
+
+	requestQueue->Enqueue(&op);
 	nextFramePosition = position;
 	nextFramerotation = UKismetMathLibrary::FindLookAtRotation(position, target);
-	nextFrameCamera[0] = FVector::Distance(position,target);
+	nextFrameCamera[0] = FVector::Distance(position, target);
 	nextFrameCamera[2] = lens;
 	nextFrameCamera[1] = aperture;
-	requestQueue->Enqueue(&op);
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);

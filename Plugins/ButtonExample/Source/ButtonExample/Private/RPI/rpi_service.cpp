@@ -40,6 +40,7 @@ RpiService::RpiService() {
     ADD_FUNCTION(Primitive::ViewTarget);
     ADD_FUNCTION(Primitive::RenderView);
     ADD_FUNCTION(Primitive::Spotlight);
+    ADD_FUNCTION(Primitive::PyramidFrustumWithMaterial);
 	UE_LOG(LogThread, Log, TEXT("Created Thread"));
     
 }
