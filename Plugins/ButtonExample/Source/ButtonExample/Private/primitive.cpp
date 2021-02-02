@@ -45,6 +45,8 @@ FDateTime previousOperation;
 bool startTime =false;
 int sleepTime = 1;
 
+TAtomic<bool> captureFinished = true;
+
 TQueue<Operation*>* requestQueue = new TQueue<Operation*, EQueueMode::Spsc>();
 TQueue<Response>* responsequeue = new TQueue<Response, EQueueMode::Spsc>();
 //--------------------------------------------------------Placing Objects---------------------------------------------------------------------------//
@@ -55,6 +57,7 @@ TArray<UStaticMesh*> listMesh;
 
 ACameraActor* camera;
 
+
 FRotator MyLookRotation(FVector lookAt, FVector upDirection)
 {
 	FVector forward = lookAt /100;
@@ -64,10 +67,6 @@ FRotator MyLookRotation(FVector lookAt, FVector upDirection)
 
 	///////////////////////
 
-
-	UE_LOG(LogTemp, Warning, TEXT("forward: %s"), *forward.ToString());
-
-	UE_LOG(LogTemp, Warning, TEXT("up: %s"), *up.ToString());
 
 	return UKismetMathLibrary::MakeRotFromXZ(lookAt.GetSafeNormal(), upDirection.GetSafeNormal());
 
@@ -197,8 +196,8 @@ bool  Primitive::checkQueue(float delta, int SpFs) {
 	while (!(requestQueue->IsEmpty()) ) {
 
 		requestQueue->Dequeue(fo);
-
 		responsequeue->Enqueue(fo->execute());
+
 		if (startTime) {
 			time = (fo->receiveTime - previousOperation).GetTotalMilliseconds();
 			UE_LOG(LogTemp, Warning, TEXT("time between %f"),time);
@@ -342,8 +341,7 @@ int Primitive::StaticMesh(char* label, char* myStaticMesh, float px, float py, f
 int Primitive::Cylinder(FVector bot, float radius, FVector top)
 {
 	
-	UE_LOG(LogTemp, Warning, TEXT("Creating a Cylinder"));
-	
+
 	AActor* par = NULL;
 	UMaterialInterface* mat = NULL;
 	if (parent > -1) {
@@ -353,13 +351,19 @@ int Primitive::Cylinder(FVector bot, float radius, FVector top)
 		mat = listMaterial[current_material];
 	}
 	CylinderCreation op = CylinderCreation(bot, FQuat::FindBetween(FVector(0, 0, 1), top - bot).Rotator(), radius, FVector::Dist(top, bot),par,mat);
+	
+	
 	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
+	
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);
+
 	AActor* newActor = r.getResponse<AActor>();
-	return listActor.Add(newActor);
+	responsequeue->Empty();
+	return 0;
+	
 }
 
 
@@ -367,10 +371,8 @@ int Primitive::Cylinder(FVector bot, float radius, FVector top)
 int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, float sz)
 {
 
-	//mover para main thread
 
-
-		UE_LOG(LogTemp, Warning, TEXT("Creating a Cube"));
+ 
 
 		AActor* par = NULL;
 		UMaterialInterface* mat = NULL;
@@ -381,13 +383,16 @@ int Primitive::Box(FVector pos, FVector vx, FVector vy, float sx, float sy, floa
 			mat = listMaterial[current_material];
 		}
 		BoxCreation op = BoxCreation(pos, MyLookRotation(vx, vy), FVector(sx,sy,sz),par,mat);
+
 		op.receiveTime = FDateTime::Now();
 		requestQueue->Enqueue(&op);
 		waitForRequest();
 		Response r;
 		responsequeue->Dequeue(r);
 		AActor* newActor = r.getResponse<AActor>();
-		return listActor.Add(newActor);
+		responsequeue->Empty();
+		return 0;
+
 		
 }
 
@@ -494,9 +499,9 @@ int Primitive::Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, floa
 	}
 
 
-	for (TArray<FVector> vectors : holes) {
-		for (int i = 0; i < vectors.Num(); i++) {
-			vectors[i]= vectors[i] - contour[0];
+	for (int j = 0; j < holes.Num();j++) {
+		for (int i = 0; i < holes[j].Num(); i++) {
+			holes[j][i]= holes[j][i] - contour[0];
 		}
 	}
 
@@ -506,7 +511,7 @@ int Primitive::Slab(TArray<FVector> contour, TArray<TArray<FVector>> holes, floa
 		par = listActor[parent];
 	}
 
-	SlabCreation op = SlabCreation(contour[0], base,holes, h * 100, par, material);
+	SlabCreation op = SlabCreation(contour[0], base, holes, h * 100, par, material);
 	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
 	waitForRequest();
@@ -546,6 +551,10 @@ int Primitive::InstantiateBIMElement(UStaticMesh* family, FVector pos, float ang
 	responsequeue->Dequeue(r);
 	AActor* newActor = r.getResponse<AActor>();
 	return listActor.Add(newActor);
+}
+
+void Primitive::EndCapture() {
+	captureFinished = true;
 }
 
 
@@ -676,7 +685,8 @@ int Primitive::BeamRectSection(FVector pos, FVector vx, FVector vy, float dx, fl
 
 int Primitive::BeamCircSection(FVector bot, float radius, FVector top, UMaterialInterface* material)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Creating a Cylinder"));
+	
+	
 
 	AActor* par = NULL;
 
@@ -788,11 +798,16 @@ int Primitive::PointLight(FVector position, FLinearColor color, float range, flo
 
 int Primitive::SetView(FVector position, FVector target, float lens, float aperture)
 {
-	ChangeViewOperation op = ChangeViewOperation(position,target);
 
+	nextFramerotation = UKismetMathLibrary::FindLookAtRotation(position, target);
+
+	ChangeViewOperation op = ChangeViewOperation(position, nextFramerotation);
 	requestQueue->Enqueue(&op);
 	nextFramePosition = position;
 	nextFramerotation = UKismetMathLibrary::FindLookAtRotation(position, target);
+
+	nextFramePosition = position;
+
 	nextFrameCamera[0] = FVector::Distance(position, target);
 	nextFrameCamera[2] = lens;
 	nextFrameCamera[1] = aperture;
@@ -823,7 +838,6 @@ int Primitive::RenderView(int width, int height, std::string name, std::string p
 	RenderCreation op = RenderCreation(nextFramePosition,nextFramerotation, nextFrameCamera[0], nextFrameCamera[1], nextFrameCamera[2],width,height,frame, FString(name.c_str()), FString(path.c_str()));
 	op.receiveTime = FDateTime::Now();
 	requestQueue->Enqueue(&op);
-
 	waitForRequest();
 	Response r;
 	responsequeue->Dequeue(r);

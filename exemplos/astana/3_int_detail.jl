@@ -580,13 +580,13 @@ bookshelf(p, len, width, height, out_thickness, in_thickness, nx, nz) =
         end
     end
 
-
+#=
 astana_bookshelf =
   current_backend() in [autocad, unity] ?
     block("AstanaBookshelf",
       with(current_material,
            current_backend() == unity ?
-             get_material("Materials/Wood/Wood1") :
+             get_material("Default/Materials/Wood") :
              current_material()) do
         translating_current_cs(0, 0) do
           collecting_shapes() do
@@ -602,7 +602,7 @@ astana_bookshelf =
       end
     end) :
     "Not used"
-
+=#
 book_set(pbook, fi, level, height, shv_no) =
   if shv_no <= 0
     "Lots of books"

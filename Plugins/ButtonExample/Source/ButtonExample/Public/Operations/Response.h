@@ -2,7 +2,7 @@
 #include "GameFramework/Actor.h"
 #include "Materials/Material.h"
 
-class Response
+class BUTTONEXAMPLE_API Response
 {
 private:
 	UObject* _resp;

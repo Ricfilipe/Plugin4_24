@@ -22,12 +22,15 @@
 #include "Engine/World.h"
 #include "GameFramework/WorldSettings.h"
 #include "GameFramework/GameMode.h"
+#include "Primitive.h"
+#include "FileHelpers.h"
 
 #define LOCTEXT_NAMESPACE "RenderCreation"
 
 FString sequenceName;
 ULevelSequence* current = NULL;
 
+bool captureFinished = true;
 
 UAutomatedLevelSequenceCapture* movieSceneCapture;
 
@@ -59,6 +62,8 @@ RenderCreation::RenderCreation(FVector pos, FRotator rot, float focal, float ape
 
 Response RenderCreation::execute()
 {
+
+
 	ALevelSequenceActor* realActor = NULL;
 	if (current == NULL || name != sequenceName) {
 		sequenceName = name;
@@ -92,39 +97,44 @@ Response RenderCreation::execute()
 		focalChannel = focalTrack->GetAllSections()[0]->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[0];
 		auto apertureTrack = Cast<UMovieSceneFloatTrack>(binds[1].GetTracks()[2]);
 		apertureChannel = apertureTrack->GetAllSections()[0]->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>()[0];
-
+		current->MovieScene->GetCameraCutTrack()->GetAllSections()[0]->SetRange(TRange<FFrameNumber>(900));
 	}
-	current->GetMovieScene()->SetSelectionRange(TRange<FFrameNumber>(FFrameNumber(param[3])));
+
+	current->MovieScene->GetCameraCutTrack()->GetAllSections()[0]->SetRange(TRange<FFrameNumber>(0,(frame+1) * 800));
 	FFrameNumber currentFrame = FFrameNumber();
-	currentFrame.Value = param[2];
-	posX->AddConstantKey(currentFrame, camera_pos.X);
-	posY->AddConstantKey(currentFrame, camera_pos.Y);
-	posZ->AddConstantKey(currentFrame, camera_pos.Z);
+	currentFrame.Value =frame *800;
+	posX->GetData().UpdateOrAddKey(currentFrame, FMovieSceneFloatValue(camera_pos.X));
+	posY->GetData().UpdateOrAddKey(currentFrame, FMovieSceneFloatValue(camera_pos.Y));
+	posZ->GetData().UpdateOrAddKey(currentFrame, FMovieSceneFloatValue(camera_pos.Z));
 
-	rotX->AddConstantKey(currentFrame, camera_rot.Euler().X);
-	rotY->AddConstantKey(currentFrame, camera_rot.Euler().Y);
-	rotZ->AddConstantKey(currentFrame, camera_rot.Euler().Z);
+	rotX->GetData().UpdateOrAddKey(currentFrame, FMovieSceneFloatValue(camera_rot.Euler().X));
 
-	focusChannel->AddConstantKey(currentFrame, focus);
-	focalChannel->AddConstantKey(currentFrame, focalLenght);
-	apertureChannel->AddConstantKey(currentFrame, aperture);
+	rotY->GetData().UpdateOrAddKey(currentFrame, FMovieSceneFloatValue(camera_rot.Euler().Y));
+	rotZ->GetData().UpdateOrAddKey(currentFrame, FMovieSceneFloatValue(camera_rot.Euler().Z));
 
+	focusChannel->GetData().UpdateOrAddKey(currentFrame, FMovieSceneFloatValue(focus));
+	focalChannel->GetData().UpdateOrAddKey(currentFrame, FMovieSceneFloatValue(focalLenght));
+	apertureChannel->GetData().UpdateOrAddKey(currentFrame, FMovieSceneFloatValue(aperture));
 
-
+	TArray<UPackage*> toSave;
+	
+	toSave.Add(current->MovieScene->GetOuter()->GetOutermost());
+	FEditorFileUtils::PromptForCheckoutAndSave(toSave, false,/*bPromptToSave=*/ false);
+	/*
 	movieSceneCapture = NewObject<UAutomatedLevelSequenceCapture>(GetTransientPackage(), UAutomatedLevelSequenceCapture::StaticClass(), FName("MovieCapture"), RF_Transient);
 	movieSceneCapture->ImageCaptureProtocolType = UImageSequenceProtocol_PNG::StaticClass();
 	UImageSequenceProtocol_PNG* ImageCaptureProtocol = NewObject<UImageSequenceProtocol_PNG>(movieSceneCapture, UImageSequenceProtocol_PNG::StaticClass(), FName("UUserDefinedImageCaptureProtocol"));
 	movieSceneCapture->ImageCaptureProtocol = ImageCaptureProtocol;
 	movieSceneCapture->LoadFromConfig();
-
+	movieSceneCapture->DelayBeforeWarmUp = 0.001f;
 	movieSceneCapture->LevelSequenceAsset = current->GetMovieScene()->GetOuter()->GetPathName();
 	ULevelEditorPlaySettings* PlayInEditorSettings = GetMutableDefault<ULevelEditorPlaySettings>();
 
 
 	FMovieSceneCaptureSettings Settings = movieSceneCapture->GetSettings();
 
-	PlayInEditorSettings->NewWindowWidth = Settings.Resolution.ResX;
-	PlayInEditorSettings->NewWindowHeight = Settings.Resolution.ResY;
+	PlayInEditorSettings->NewWindowWidth = 1920;
+	PlayInEditorSettings->NewWindowHeight = 1080;
 	PlayInEditorSettings->CenterNewWindow = true;
 	PlayInEditorSettings->LastExecutedPlayModeType = EPlayModeType::PlayMode_InEditorFloating;
 
@@ -137,8 +147,8 @@ Response RenderCreation::execute()
 		.HasCloseButton(true)
 		.SupportsMaximize(false)
 		.SupportsMinimize(true)
-		.MaxWidth(Settings.Resolution.ResX)
-		.MaxHeight(Settings.Resolution.ResY)
+		.MaxWidth(1920)
+		.MaxHeight(10)
 		.SizingRule(ESizingRule::FixedSize);
 
 
@@ -175,13 +185,14 @@ Response RenderCreation::execute()
 	movieSceneCapture->Settings.ZeroPadFrameNumbers = 0;
 	movieSceneCapture->Settings.bUseRelativeFrameNumbers = false;
 
-	FFrameNumber StartFrame = FFrameNumber(0);
-	FFrameNumber EndFrame = FFrameNumber(1);
+
+	FFrameNumber StartFrame = FFrameNumber(frame);
+	FFrameNumber EndFrame = FFrameNumber(frame+1);
 	movieSceneCapture->SetFrameOverrides(StartFrame, EndFrame);
 
 	movieSceneCapture->AddToRoot();
 	movieSceneCapture->OnCaptureFinished().AddRaw(this, &Operation::OnLevelSequenceFinished);
-	movieSceneCapture->Settings.Resolution = FCaptureResolution(param[0], param[1]);
+	movieSceneCapture->Settings.Resolution = FCaptureResolution(width, height);
 
 
 	UGameViewportClient::OnViewportCreated().AddRaw(this, &Operation::OnPIEViewportStarted);
@@ -191,6 +202,7 @@ Response RenderCreation::execute()
 
 	GEditor->RequestPlaySession(true, nullptr, false);
 
+	*/
 
 
 	return realActor;
@@ -236,6 +248,7 @@ void Operation::OnLevelSequenceFinished() {
 
 	movieSceneCapture->Close();
 	movieSceneCapture->RemoveFromRoot();
+	Primitive::EndCapture();
 }
 
 

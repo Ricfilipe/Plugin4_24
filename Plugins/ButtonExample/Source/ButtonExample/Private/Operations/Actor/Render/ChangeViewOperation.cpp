@@ -6,7 +6,7 @@
 #include "Slate/SceneViewport.h"
 
 
-ChangeViewOperation::ChangeViewOperation(FVector position, FVector target)
+ChangeViewOperation::ChangeViewOperation(FVector position, FRotator target)
 {
 	pos = position;
 	_target = target;
@@ -15,6 +15,6 @@ ChangeViewOperation::ChangeViewOperation(FVector position, FVector target)
 Response ChangeViewOperation::execute()
 {
 	GCurrentLevelEditingViewportClient->SetViewLocation(pos);
-	GCurrentLevelEditingViewportClient->SetLookAtLocation(_target);
+	GCurrentLevelEditingViewportClient->SetViewRotation(_target);
 	return Response();
 }

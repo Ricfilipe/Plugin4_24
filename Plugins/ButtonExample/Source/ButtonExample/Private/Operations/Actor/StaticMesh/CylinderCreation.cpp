@@ -8,8 +8,8 @@
 
 CylinderCreation::CylinderCreation(FVector position, FRotator rotation, float rad, float hght, AActor* par, UMaterialInterface* mat):
 	ActorStaticMeshCreation(position,rotation,FVector(1,1,1), par, mat, FString("/Game/MyStaticMeshes/Cylinder" +
-		FString::SanitizeFloat(height) + ":" +
-		FString::SanitizeFloat(radius) + ":" +
+		FString::SanitizeFloat(hght) + ":" +
+		FString::SanitizeFloat(rad) + ":" +
 		FString::SanitizeFloat(50)))
 {
 	radius = rad;

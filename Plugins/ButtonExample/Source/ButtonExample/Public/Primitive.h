@@ -127,6 +127,7 @@ namespace Primitive {
 
 	int RenderView(int width, int height, std::string name, std::string path, int frame);
 
+	void EndCapture();
 }
 
 

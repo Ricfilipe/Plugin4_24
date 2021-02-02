@@ -10,9 +10,9 @@
 class BUTTONEXAMPLE_API ChangeViewOperation : public ActorCreation
 {
 public:
-	ChangeViewOperation(FVector position, FVector target);
+	ChangeViewOperation(FVector position, FRotator target);
 	Response execute() override;
 
 protected:
-	FVector _target;
+	FRotator _target;
 };

@@ -33,30 +33,30 @@ astana() =
     #with(default_beam_family, astana_beam_family) do
     begin
         delete_all_shapes()
-        #@with_layer "Mid Block Slabs" mid_block_slabs(astana_center_p)
-        #@with_layer "Out Block Out Slabs" out_block_out_slabs(astana_center_p)
-        #@with_layer "Out Blocks in Slabs" out_block_in_slabs(astana_center_p, 4pi, 0, 0)
-        # @with_layer "Spiral Steps" spiral_steps(astana_center_p)       #ALL AROUND SPIRAL STAIRS
+        @with_layer "Mid Block Slabs" mid_block_slabs(astana_center_p) #Redoo
+        @with_layer "Out Block Out Slabs" out_block_out_slabs(astana_center_p)
+        @with_layer "Out Blocks in Slabs" out_block_in_slabs(astana_center_p, 4pi, 0, 0)
+        @with_layer "Spiral Steps" spiral_steps(astana_center_p)       #ALL AROUND SPIRAL STAIRS
     #COLUMNS AND BEAMS
-        #@with_layer "Out Slab Beams" out_slab_beams(astana_center_p)
-        #@with_layer "Mid Columns" mid_columns(astana_center_p)
-        #@with_layer "Cross Beams" cross_beams(astana_center_p)
-        #@with_layer "Out Columns" out_columns(astana_center_p)
+        @with_layer "Out Slab Beams" out_slab_beams(astana_center_p)
+        @with_layer "Mid Columns" mid_columns(astana_center_p)
+        @with_layer "Cross Beams" cross_beams(astana_center_p)
+        @with_layer "Out Columns" out_columns(astana_center_p)
     #WALLS
-        #@with_layer "Block Walls" book_walls(astana_center_p)
+        @with_layer "Block Walls" book_walls(astana_center_p)
          #@with_layer "Cores" cores(astana_center_p)               #WALLS & DOORS & ELEVATORS & TOP SLABS
             # AutoCAD -- Error
-        #@with_layer "Glass Walls" glass_walls(astana_center_p)   #CURTAIN WALL
+        @with_layer "Glass Walls" glass_walls(astana_center_p)   #CURTAIN WALL
     #STEEL FAÇADE
-        #@with_layer "Frames" frames(astana_center_p)
+        @with_layer "Frames" frames(astana_center_p) # com problemas
         #@with_layer "Connections" connections(astana_center_p)
-        #@with_layer "Connections" new_conections(astana_center_p)
-        #@with_layer "Bays" bays(astana_center_p)
-        #@with_layer "Secondary Structure" secondary_structure(astana_center_p)
+        @with_layer "Connections" new_conections(astana_center_p)
+        @with_layer "Bays" bays(astana_center_p)
+        @with_layer "Secondary Structure" secondary_structure(astana_center_p)
     #MORPHS
-        #@with_layer "Facade Glass" facade_glass(astana_center_p)      #FAÇADE GLASS PANELS
+    @with_layer "Facade Glass" facade_glass(astana_center_p)      #FAÇADE GLASS PANELS
         #@with_layer "Photovoltaic panels" photovoltaic_panels(astana_center_p)
-        #@with_layer "Raillings" raillings(astana_center_p)
+        @with_layer "Raillings" raillings(astana_center_p)
     #OBJECTS
         #with(current_material, get_material("Default/Materials/Concrete")) do
          # @with_layer "Stair Cases" stair_cases(astana_center_p)
@@ -71,7 +71,3 @@ astana() =
     end
 
 astana()
-
-
-@with_layer "teste:" createnActors(50)
-delete_all_shapes()

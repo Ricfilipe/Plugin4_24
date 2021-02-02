@@ -1,5 +1,5 @@
-include("6_generate.jl")
-
+#include("6_generate.jl")
+include("5_AAV.jl")
 # INDEX ________________________________________________________________________
 
 # RENDER : films
@@ -18,6 +18,18 @@ saving_film_frames(true)
 #     xyz(-145.3925018310547,-267.9966125488281,260.5293884277344),
 #     xyz(-145.0211181640625,-267.31585693359375,259.89801025390625),
 #     35.0)
+
+macro with_layer(name, expr)
+  quote
+    let  l =  1 #create_layer($name)
+      # with(current_layer, l) do
+        print($(rpad(name, 20)), "->")
+        @time $expr
+      # end
+      #Khepri.canonicalize_layer(l, unity)
+    end
+  end
+end
 
 astana12seq()=
   for i in 0:3
@@ -42,7 +54,7 @@ astana3seq()=
       astana(p)
   end
 
-#=
+render_dir("E:\\Unreal\\TesteImages\\Unreal")
 #model: with computer object!
 start_film("1_Dolly-Forth")
 Astana_Dolly_Zoom_Forth()
@@ -52,37 +64,37 @@ start_film("9_Dolly-Back")
 Astana_Dolly_Zoom_Back()
 
 #model: with furniture objects
-with(default_lens, 16) do
+@with_layer "Library" with(default_lens, 16) do
   start_film("4_Walktrough-Library")
   Astana_walkthrough()
 end
 
 #model:exterior corrected bars and no cores
-with(default_lens, 35) do
+@with_layer "Facade Glass" with(default_lens, 35) do
   start_film("3_Tracking-Line")
   Astana_Tracking_Line()
 end
 
 #model:exterior corrected bars and no cores
-with(default_lens, 20) do
+@with_layer "patio" with(default_lens, 20) do
   start_film("5_Tracking-Enter-patio")
   Astana_Tracking_Forth_Walk()
 end
 
 #model:complete model exterior
-with(default_lens, 15) do
+  @with_layer "Panning UP" with(default_lens, 15) do
   start_film("6_Panning-Up")
   Astana_Panning_Up()
 end
 
 #model:complete model exterior
-with(default_lens, 15) do
+  @with_layer "Panning-Patio" with(default_lens, 15) do
   start_film("8_Panning-Patio")
   Astana_Panning()
 end
 
 #model:complete model exterior
-with(default_lens, 18) do
+  @with_layer "Exterior" with(default_lens, 18) do
   start_film("2_Tracking-Cyl")
   Astana_Tracking_Cyl()
 end
