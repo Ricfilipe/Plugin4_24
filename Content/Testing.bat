@@ -1,0 +1,1 @@
+"E:/Games/UE_4.25/Engine/Plugins/VRayForUnreal/Source/ThirdParty/VRay_unreal_appsdk/bin/vray.exe" -sceneFile="E:/Unreal/Plugin4_24/Content/Testing.vrscene" -distributed=0 -renderhost="" -portNumber=20207 -transferAssets=1 -cachedAssetsLimitType=2 -cachedAssetsLimitValue=10 -rtEngine=5
